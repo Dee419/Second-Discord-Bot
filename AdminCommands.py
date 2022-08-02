@@ -47,7 +47,7 @@ class Admin_Commands(commands.Cog):
             await target.ban(reason=reason)
 
     # Purge command
-    @commands.command(help="Allows the user to ban a user")
+    @commands.command(help="Allows the user to purge a given amount of messages")
     @commands.guild_only()
     @commands.has_permissions(manage_messages=True)
     @commands.bot_has_permissions(manage_messages=True)
@@ -69,6 +69,7 @@ class Admin_Commands(commands.Cog):
             embed = create_embed(f":white_check_mark: Purged successfully", f"Purged {amount} messages of {member.name}#{member.discriminator} successfully!", color="SUCCESS")
             await ctx.send(embed=embed, delete_after=3)
 
+    # Error handlers
     @kick.error
     async def kick_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
@@ -90,5 +91,5 @@ class Admin_Commands(commands.Cog):
     @purge.error
     async def purge_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument):
-            embed = create_embed(f":x: Purge failed", f"No amount was given", color="ERROR")
+            embed = create_embed(f":information_source: Purge info", f"Allows the user to purge a given amount of messages. You can also choose whose messages are to be purged.\nExample: `.purge 10 206398035654213633`", color="INFO")
             await ctx.reply(embed=embed)
