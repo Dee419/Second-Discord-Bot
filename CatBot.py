@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 
 from AdminCommands import Admin_Commands
+from FunCommands import Fun_Commands
 
 print("Setting up intents")
 intents = discord.Intents.default()
@@ -10,6 +11,7 @@ intents.messages = True
 print("Setting up bot")
 bot = commands.Bot(command_prefix='.', intents=intents)
 bot.add_cog(Admin_Commands(bot))
+bot.add_cog(Fun_Commands(bot))
 
 # Used to see when the bot is available
 @bot.event

@@ -6,7 +6,7 @@ SUCCESS = discord.Color.from_rgb(59, 165, 93)
 ERROR = discord.Color.from_rgb(220, 20, 60)
 WARNING = discord.Color.from_rgb(255, 215, 0)
 
-def create_embed(title, description, footer=None, time=None, color="INFO"):
+def create_embed(title, description, footer=None, time=None, color="INFO", url=""):
     if color == "WARNING":
         color = WARNING
     elif color == "SUCCESS":
@@ -15,7 +15,10 @@ def create_embed(title, description, footer=None, time=None, color="INFO"):
         color = ERROR
     else:
         color = INFO
-    embed = discord.Embed(title=title, description=description, color=color)
+    if url != "":
+        embed = discord.Embed(title=title, description=description, color=color, url=url)
+    else:
+        embed = discord.Embed(title=title, description=description, color=color)
 
     if time == True:
         embed.timestamp = datetime.datetime.now()
