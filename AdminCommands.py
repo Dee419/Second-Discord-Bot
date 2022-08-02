@@ -95,7 +95,7 @@ class Admin_Commands(commands.Cog):
                 reason = reason[:-1]
             else:
                 reason = "no reason given"
-            embed = create_embed(f":white_check_mark: Warned successfull", f"{target.name}#{target.discriminator} has been warmed for {reason}!", time=True, color="SUCCESS")
+            embed = create_embed(f":white_check_mark: Warned successfull", f"{target.name}#{target.discriminator} has been warned for {reason}!", time=True, color="SUCCESS")
             await ctx.reply(embed=embed)
 
             embed = create_embed(f":warning: You have been warned!", f"You have been warned on {ctx.guild.name} for {reason}!", color="WARNING")
@@ -106,19 +106,19 @@ class Admin_Commands(commands.Cog):
     @kick.error
     async def kick_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
-            embed = create_embed(f":x: Kick failed", f"You don't have permission to kick members!", time=True, color="ERROR")
+            embed = create_embed(f":x: Kick failed", f"You don't have permission to kick members!", color="ERROR")
             await ctx.reply(embed=embed)
         if isinstance(error, commands.BotMissingPermissions):
-            embed = create_embed(f":x: Kick failed", f"I don't have permission to kick members!", time=True, color="ERROR")
+            embed = create_embed(f":x: Kick failed", f"I don't have permission to kick members!", color="ERROR")
             await ctx.reply(embed=embed)
 
     @ban.error
     async def ban_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
-            embed = create_embed(f":x: Ban failed", f"You don't have permission to ban users!", time=True, color="ERROR")
+            embed = create_embed(f":x: Ban failed", f"You don't have permission to ban users!", color="ERROR")
             await ctx.reply(embed=embed)
         if isinstance(error, commands.BotMissingPermissions):
-            embed = create_embed(f":x: Ban failed", f"I don't have permission to ban users!", time=True, color="ERROR")
+            embed = create_embed(f":x: Ban failed", f"I don't have permission to ban users!", color="ERROR")
             await ctx.reply(embed=embed)
 
     @purge.error
@@ -130,5 +130,5 @@ class Admin_Commands(commands.Cog):
     @warn.error
     async def warn_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
-            embed = create_embed(f":x: Warn failed", f"You don't have permission to warn members!", time=True, color="ERROR")
+            embed = create_embed(f":x: Warn failed", f"You don't have permission to warn members!", color="ERROR")
             await ctx.reply(embed=embed)
