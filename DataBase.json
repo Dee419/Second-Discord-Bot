@@ -1,0 +1,9 @@
+{
+    "servers": [
+        {
+            "guild_id": 0,
+            "chat_log_channel_id": 0,
+            "welcome_channel": 0
+        }
+    ]
+}
