@@ -1,4 +1,5 @@
 import discord
+import json
 from discord.ext import commands
 from Embed import create_embed
 
@@ -102,6 +103,49 @@ class Admin_Commands(commands.Cog):
             channel = await target.create_dm()
             await channel.send(embed=embed)
 
+    # Set chat log channel command
+    @commands.command(help="Allows the user to purge a given amount of messages")
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    async def setchatlogchannel(self, ctx, channel: discord.TextChannel = None):
+        if channel is None:
+            channel = ctx.channel
+        with open('DataBase.json') as file:
+            data = json.load(file)
+        for server in data['servers']:
+            if server['guild_id'] == ctx.guild.id:
+                server['chat_log_channel_id'] = channel.id
+                break
+        with open('DataBase.json', 'w') as file:
+            json.dump(data, file, indent=4)
+        embed = create_embed(":white_check_mark: Successfully changed the chat log channel", f"Changed the chat log channel to {channel.mention}", color="SUCCESS")
+        await ctx.reply(embed=embed)
+
+    # Add server to database command
+    @commands.command(help="Allows the user to add the server to the database in case the server is not currently in the database")
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    async def addservertodatabase(self, ctx):
+        with open('DataBase.json') as file:
+            data = json.load(file)
+        for server in data['servers']:
+            # First check if the server is already in the database
+            if server['guild_id'] == ctx.guild.id:
+                embed = create_embed(":warning: Add server to database failed", "Server is already in the database", color="WARNING")
+                await ctx.reply(embed=embed)
+                return
+        # If the server is not yet in the database we must add it to the database
+        to_add = {
+            "guild_id": ctx.guild.id,
+            "chat_log_channel_id": 0,
+            "welcome_channel": 0
+        }
+        data['servers'].append(to_add)
+        with open('DataBase.json', 'w') as file:
+            json.dump(data, file, indent=4)
+        embed = create_embed(":white_check_mark: Successfully added the server to the database", f"Added this server to the database. Remember to use `.setchatlogchannel` to set the chat log channel", color="SUCCESS")
+        await ctx.reply(embed=embed)
+        
     # Error handlers
     @kick.error
     async def kick_error(self, ctx, error):
@@ -131,4 +175,16 @@ class Admin_Commands(commands.Cog):
     async def warn_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
             embed = create_embed(f":x: Warn failed", f"You don't have permission to warn members!", color="ERROR")
+            await ctx.reply(embed=embed)
+        
+    @setchatlogchannel.error
+    async def setchatlogchannel_error(self, ctx, error):
+        if isinstance(error, commands.MissingPermissions):
+            embed = create_embed(f":x: Set chat log channel failed", f"You don't have permission to change the chat log channel!", color="ERROR")
+            await ctx.reply(embed=embed)
+
+    @addservertodatabase.error
+    async def addservertodatabase_error(self, ctx, error):
+        if isinstance(error, commands.MissingPermissions):
+            embed = create_embed(f":x: Add server to database failed", f"You don't have permission to add the server to the database!", color="ERROR")
             await ctx.reply(embed=embed)
