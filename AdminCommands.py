@@ -45,6 +45,8 @@ class Admin_Commands(commands.Cog):
         if target == None:
             embed = create_embed(f":information_source: Kick info", f"Allows the user to kick a member.\nExample: `.kick 206398035654213633 Toxic Behaviour`", color="INFO")
             await ctx.reply(embed=embed)
+        elif target == self.bot.user:
+            raise commands.BadArgument
         else:
             if len(args) > 0:
                 for arg in args:
@@ -71,6 +73,8 @@ class Admin_Commands(commands.Cog):
         if target == None:
             embed = create_embed(f":information_source: Ban info", f"Allows the user to ban a user. The user in question does not need to be on the server.\nExample: `.ban 206398035654213633 Hate Speech`", color="INFO")
             await ctx.reply(embed=embed)
+        elif target == self.bot.user:
+            raise commands.BadArgument
         else:
             if len(args) > 0:
                 for arg in args:
@@ -145,10 +149,14 @@ class Admin_Commands(commands.Cog):
             channel = ctx.channel
         with open('DataBase.json') as file:
             data = json.load(file)
+        found = False
         for server in data['servers']:
             if server['guild_id'] == ctx.guild.id:
                 server['chat_log_channel_id'] = channel.id
+                found = True
                 break
+        if not found:
+            raise commands.CommandInvokeError("NotFoundInDatabase")
         with open('DataBase.json', 'w') as file:
             json.dump(data, file, indent=4)
         embed = create_embed(":white_check_mark: Successfully changed the chat log channel", f"Changed the chat log channel to {channel.mention}", color="SUCCESS")
@@ -230,11 +238,14 @@ class Admin_Commands(commands.Cog):
         if isinstance(error, commands.MissingPermissions):
             embed = create_embed(f":x: Kick failed", f"You don't have permission to kick members!", color="ERROR")
             await ctx.reply(embed=embed)
-        if isinstance(error, commands.BotMissingPermissions):
+        elif isinstance(error, commands.BotMissingPermissions):
             embed = create_embed(f":x: Kick failed", f"I don't have permission to kick members!", color="ERROR")
             await ctx.reply(embed=embed)
-        if isinstance(error, commands.CommandInvokeError):
+        elif isinstance(error, commands.CommandInvokeError):
             embed = create_embed(f":x: Kick failed", f"Server not found in database, please use `.addservertodatabase`", color="ERROR")
+            await ctx.reply(embed=embed)
+        elif isinstance(error, commands.BadArgument):
+            embed = create_embed(f":x: Kick failed", f"I can't kick myself. Just manually kick me if you really want me gone :(", color="ERROR")
             await ctx.reply(embed=embed)
 
     @ban.error
@@ -242,11 +253,14 @@ class Admin_Commands(commands.Cog):
         if isinstance(error, commands.MissingPermissions):
             embed = create_embed(f":x: Ban failed", f"You don't have permission to ban users!", color="ERROR")
             await ctx.reply(embed=embed)
-        if isinstance(error, commands.BotMissingPermissions):
+        elif isinstance(error, commands.BotMissingPermissions):
             embed = create_embed(f":x: Ban failed", f"I don't have permission to ban users!", color="ERROR")
             await ctx.reply(embed=embed)
-        if isinstance(error, commands.CommandInvokeError):
+        elif isinstance(error, commands.CommandInvokeError):
             embed = create_embed(f":x: Ban failed", f"Server not found in database, please use `.addservertodatabase`", color="ERROR")
+            await ctx.reply(embed=embed)
+        elif isinstance(error, commands.BadArgument):
+            embed = create_embed(f":x: Ban failed", f"I can't ban myself. Just manually ban me if you really want me gone ;-;", color="ERROR")
             await ctx.reply(embed=embed)
 
     @purge.error
@@ -260,7 +274,7 @@ class Admin_Commands(commands.Cog):
         if isinstance(error, commands.MissingPermissions):
             embed = create_embed(f":x: Warn failed", f"You don't have permission to warn members!", color="ERROR")
             await ctx.reply(embed=embed)
-        if isinstance(error, commands.CommandInvokeError):
+        elif isinstance(error, commands.CommandInvokeError):
             embed = create_embed(f":x: Warn failed", f"Server not found in database, please use `.addservertodatabase`", color="ERROR")
             await ctx.reply(embed=embed)
         
@@ -268,6 +282,9 @@ class Admin_Commands(commands.Cog):
     async def setchatlogchannel_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
             embed = create_embed(f":x: Set chat log channel failed", f"You don't have permission to change the chat log channel!", color="ERROR")
+            await ctx.reply(embed=embed)
+        elif isinstance(error, commands.CommandInvokeError):
+            embed = create_embed(f":x: List punishments failed", f"Server not found in database, please use `.addservertodatabase`", color="ERROR")
             await ctx.reply(embed=embed)
 
     @addservertodatabase.error
