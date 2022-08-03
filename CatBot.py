@@ -35,7 +35,10 @@ async def on_guild_join(guild):
     to_add = {
         "guild_id": guild.id,
         "chat_log_channel_id": 0,
-        "welcome_channel": 0
+        "welcome_channel": 0,
+        "moderation": [
+        
+        ]
     }
     data['servers'].append(to_add)
     with open('DataBase.json', 'w') as file:

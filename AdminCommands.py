@@ -1,7 +1,36 @@
 import discord
 import json
+import datetime
 from discord.ext import commands
 from Embed import create_embed
+
+def add_to_moderation_db(ctx, target, reason, type):
+    with open('DataBase.json') as file:
+        data = json.load(file)
+
+    time = (datetime.datetime.now()).strftime("%H:%M:%S")
+    today = (datetime.date.today()).strftime("%d/%m/%Y")
+    id = data['last_id'] + 1
+    data['last_id'] = id
+    action_entry = {
+        "action_id": id,
+        "action_type": type,
+        "user_id": target.id,
+        "reason": reason,
+        "date": today,
+        "time": time
+    }
+    already = False
+    for server in data['servers']:
+        if server['guild_id'] == ctx.guild.id:
+            server['moderation'].append(action_entry)
+            already = True
+            break
+    if not already:
+        return False
+    with open('DataBase.json', 'w') as file:
+        json.dump(data, file, indent=4)
+    return True
 
 class Admin_Commands(commands.Cog):
     def __init__(self, bot):
@@ -23,11 +52,13 @@ class Admin_Commands(commands.Cog):
                 reason = reason[:-1]
             else:
                 reason = "no reason given"
+            if not add_to_moderation_db(ctx, target, reason, "KICK"):
+                raise commands.CommandInvokeError("NotFoundInDatabase")
             embed = create_embed(f":white_check_mark: Kick successfull", f"{target.name}#{target.discriminator} has been kicked for {reason}!", time=True, color="SUCCESS")
             await ctx.reply(embed=embed)
             await target.kick(reason=reason)
             
-            embed = create_embed(f":warning: You have been warned!", f"You have been warned on {ctx.guild.name} for {reason}!", color="ERROR")
+            embed = create_embed(f":warning: You have been kicked!", f"You have been kicked from **{ctx.guild.name}** for {reason}!", color="ERROR")
             channel = await target.create_dm()
             await channel.send(embed=embed)
 
@@ -47,11 +78,13 @@ class Admin_Commands(commands.Cog):
                 reason = reason[:-1]
             else:
                 reason = "no reason given"
+            if not add_to_moderation_db(ctx, target, reason, "BAN"):
+                raise commands.CommandInvokeError("NotFoundInDatabase")
             embed = create_embed(f":white_check_mark: Ban successfull", f"{target.name}#{target.discriminator} has been banned for {reason}!", time=True, color="SUCCESS")
             await ctx.reply(embed=embed)
             await target.ban(reason=reason)
 
-            embed = create_embed(f":warning: You have been warned!", f"You have been warned on {ctx.guild.name} for {reason}!", color="ERROR")
+            embed = create_embed(f":warning: You have been banned!", f"You have been banned from **{ctx.guild.name}** for {reason}!", color="ERROR")
             channel = await target.create_dm()
             await channel.send(embed=embed)
 
@@ -83,8 +116,6 @@ class Admin_Commands(commands.Cog):
     @commands.guild_only()
     @commands.has_permissions(manage_messages=True)
     async def warn(self, ctx, target: discord.Member=None, *args):
-        embed = create_embed(":warning: THIS COMMAND IS STILL IN DEVELOPMENT", "While the command says the person in question has been warned **in reality nothing has been added yet to any sort of database**", color="WARNING")
-        await ctx.send(embed=embed)
         if target == None:
             embed = create_embed(f":information_source: Warn info", f"Allows the user to warn a member.\nExample: `.warn 206398035654213633 Suggestive Image`", color="INFO")
             await ctx.reply(embed=embed)
@@ -96,10 +127,12 @@ class Admin_Commands(commands.Cog):
                 reason = reason[:-1]
             else:
                 reason = "no reason given"
+            if not add_to_moderation_db(ctx, target, reason, "WARN"):
+                raise commands.CommandInvokeError("NotFoundInDatabase")
             embed = create_embed(f":white_check_mark: Warned successfull", f"{target.name}#{target.discriminator} has been warned for {reason}!", time=True, color="SUCCESS")
             await ctx.reply(embed=embed)
 
-            embed = create_embed(f":warning: You have been warned!", f"You have been warned on {ctx.guild.name} for {reason}!", color="WARNING")
+            embed = create_embed(f":warning: You have been warned!", f"You have been warned on **{ctx.guild.name}** for {reason}!", color="WARNING")
             channel = await target.create_dm()
             await channel.send(embed=embed)
 
@@ -138,14 +171,59 @@ class Admin_Commands(commands.Cog):
         to_add = {
             "guild_id": ctx.guild.id,
             "chat_log_channel_id": 0,
-            "welcome_channel": 0
+            "welcome_channel": 0,
+            "moderation": [
+
+            ]
         }
         data['servers'].append(to_add)
         with open('DataBase.json', 'w') as file:
             json.dump(data, file, indent=4)
         embed = create_embed(":white_check_mark: Successfully added the server to the database", f"Added this server to the database. Remember to use `.setchatlogchannel` to set the chat log channel", color="SUCCESS")
         await ctx.reply(embed=embed)
-        
+
+    @commands.command(help="Lists all of the punishments on the server or all of the punishments of a user")
+    @commands.guild_only()
+    async def listpunishments(self, ctx, target: discord.User=None):
+        with open('DataBase.json') as file:
+            data = json.load(file)
+        found = False
+        for server in data['servers']:
+            if server['guild_id'] == ctx.guild.id:
+                found = True
+                entries = 0
+                for entry in server['moderation']:
+                    if target is None:
+                        entries += 1
+                        user = self.bot.get_user(entry['user_id'])
+                        if entry['action_type'] == "KICK":
+                            type = "Kick"
+                        elif entry['action_type'] == "BAN":
+                            type = "Ban"
+                        else:
+                            type = "Warn"
+                        embed = create_embed(f"{type} for {user.name}#{user.discriminator}", f"**User ID:** {user.id}\n**Reason:** {entry['reason']}\n**Action ID:** {entry['action_id']}\n**Date:** {entry['date']}\n**Time:** {entry['time']}")
+                        await ctx.send(embed=embed)
+                    elif target.id == entry['user_id']:
+                        entries += 1
+                        user = self.bot.get_user(entry['user_id'])
+                        if entry['action_type'] == "KICK":
+                            type = "Kick"
+                        elif entry['action_type'] == "BAN":
+                            type = "Ban"
+                        else:
+                            type = "Warn"
+                        embed = create_embed(f"{type} for {user.name}#{user.discriminator}", f"**User ID:** {user.id}\n**Reason:** {entry['reason']}\n**Action ID:** {entry['action_id']}\n**Date:** {entry['date']}\n**Time:** {entry['time']}")
+                        await ctx.send(embed=embed)
+                if entries == 0 and target is None:
+                    embed = create_embed(":information_source: No punishments found", "No punishments found, this server is squeeky clean!")
+                    await ctx.reply(embed=embed)
+                elif entries == 0:
+                    embed = create_embed(":information_source: No punishments found", "No punishments found for this user, very nice!")
+                    await ctx.reply(embed=embed)
+        if not found:
+            raise commands.CommandInvokeError("NotFoundInDatabase")
+
     # Error handlers
     @kick.error
     async def kick_error(self, ctx, error):
@@ -155,6 +233,9 @@ class Admin_Commands(commands.Cog):
         if isinstance(error, commands.BotMissingPermissions):
             embed = create_embed(f":x: Kick failed", f"I don't have permission to kick members!", color="ERROR")
             await ctx.reply(embed=embed)
+        if isinstance(error, commands.CommandInvokeError):
+            embed = create_embed(f":x: Kick failed", f"Server not found in database, please use `.addservertodatabase`", color="ERROR")
+            await ctx.reply(embed=embed)
 
     @ban.error
     async def ban_error(self, ctx, error):
@@ -163,6 +244,9 @@ class Admin_Commands(commands.Cog):
             await ctx.reply(embed=embed)
         if isinstance(error, commands.BotMissingPermissions):
             embed = create_embed(f":x: Ban failed", f"I don't have permission to ban users!", color="ERROR")
+            await ctx.reply(embed=embed)
+        if isinstance(error, commands.CommandInvokeError):
+            embed = create_embed(f":x: Ban failed", f"Server not found in database, please use `.addservertodatabase`", color="ERROR")
             await ctx.reply(embed=embed)
 
     @purge.error
@@ -176,6 +260,9 @@ class Admin_Commands(commands.Cog):
         if isinstance(error, commands.MissingPermissions):
             embed = create_embed(f":x: Warn failed", f"You don't have permission to warn members!", color="ERROR")
             await ctx.reply(embed=embed)
+        if isinstance(error, commands.CommandInvokeError):
+            embed = create_embed(f":x: Warn failed", f"Server not found in database, please use `.addservertodatabase`", color="ERROR")
+            await ctx.reply(embed=embed)
         
     @setchatlogchannel.error
     async def setchatlogchannel_error(self, ctx, error):
@@ -187,4 +274,10 @@ class Admin_Commands(commands.Cog):
     async def addservertodatabase_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
             embed = create_embed(f":x: Add server to database failed", f"You don't have permission to add the server to the database!", color="ERROR")
+            await ctx.reply(embed=embed)
+
+    @listpunishments.error
+    async def listpunishments_error(self, ctx, error):
+        if isinstance(error, commands.CommandInvokeError):
+            embed = create_embed(f":x: List punishments failed", f"Server not found in database, please use `.addservertodatabase`", color="ERROR")
             await ctx.reply(embed=embed)
