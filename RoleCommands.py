@@ -2,6 +2,7 @@ import discord
 import json
 import asyncio
 from discord.ext import commands
+from discord.utils import get
 from Embed import create_embed
 
 def add_to_rm_db(ctx, message, emoji, role):
@@ -49,13 +50,55 @@ class Role_Commands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(help="Starts the setup for a role reaction message")
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload):
+        message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
+        emoji = payload.emoji
+        member = payload.member
+        guild = self.bot.get_guild(payload.guild_id)
+        with open('DataBase.json') as file:
+            data = json.load(file)
+        for server in data['servers']:
+            if server['guild_id'] == guild.id:
+                for role_message in server['role_messages']:
+                    rm_emoji = role_message['emoji']
+                    if role_message['message_id'] == message.id and rm_emoji == str(emoji):
+                        role = guild.get_role(role_message['role_id'])
+                        await member.add_roles(role)
+                        embed = create_embed(f":white_check_mark: You have a new role!", f"You received the role named **{role.name}** on __{guild.name}__", color="SUCCESS")
+                        channel = await member.create_dm()
+                        await channel.send(embed=embed)
+                        return
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_remove(self, payload):
+        message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
+        emoji = payload.emoji
+        guild = self.bot.get_guild(payload.guild_id)
+        member = get(guild.members, id=payload.user_id)
+        with open('DataBase.json') as file:
+            data = json.load(file)
+        for server in data['servers']:
+            if server['guild_id'] == guild.id:
+                for role_message in server['role_messages']:
+                    rm_emoji = role_message['emoji']
+                    if role_message['message_id'] == message.id and rm_emoji == str(emoji):
+                        role = guild.get_role(role_message['role_id'])
+                        await member.remove_roles(role)
+                        embed = create_embed(f":information_source: You lost a role!", f"You lost the role named **{role.name}** on __{guild.name}__", color="INFO")
+                        channel = await member.create_dm()
+                        await channel.send(embed=embed)
+                        return
+
+    @commands.command(help="Starts the setup for a role reaction message. Start by providing the message id")
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
     @commands.bot_has_permissions(manage_roles=True)
     async def rmsetup(self, ctx, role_message: discord.Message=None):
         if role_message == None:
-            raise commands.BadArgument
+            embed = create_embed(f":information_source: Add role message info", f"Starts the setup for a role reaction message. Start by providing the message id\nExample: `.rmsetup 1004859270870859826`", color="INFO")
+            await ctx.reply(embed=embed)
+            return
         else:
             await ctx.send("React with the emoji you would like to use")
             def first_check(reaction, user):
@@ -101,5 +144,8 @@ class Role_Commands(commands.Cog):
             embed = create_embed(f":x: Role message setup failed", f"Given input is invalid", color="ERROR")
             await ctx.reply(embed=embed)
         elif isinstance(error, commands.CommandInvokeError):
-            embed = create_embed(f":x: Add role message to database failed", f"Server not found in database, please use `.addservertodatabase`", color="ERROR")
+            embed = create_embed(f":x: Role message setup failed", f"Server not found in database, please use `.addservertodatabase`", color="ERROR")
+            await ctx.reply(embed=embed)
+        elif isinstance(error, commands.MissingPermissions):
+            embed = create_embed(f":x: Role message setup failed", f"You don't have permission to use this command!", color="ERROR")
             await ctx.reply(embed=embed)
