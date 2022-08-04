@@ -7,6 +7,7 @@ from Embed import create_embed
 # Import cogs
 from AdminCommands import Admin_Commands
 from FunCommands import Fun_Commands
+from RoleCommands import Role_Commands
 
 print("Setting up intents")
 intents = discord.Intents.default()
@@ -17,6 +18,7 @@ print("Initializing bot and loading cogs")
 bot = commands.Bot(command_prefix='.', intents=intents)
 bot.add_cog(Admin_Commands(bot))
 bot.add_cog(Fun_Commands(bot))
+bot.add_cog(Role_Commands(bot))
 
 # Used to see when the bot is available
 @bot.event
@@ -38,6 +40,9 @@ async def on_guild_join(guild):
         "welcome_channel": 0,
         "moderation": [
         
+        ],
+        "role_messages": [
+
         ]
     }
     data['servers'].append(to_add)
