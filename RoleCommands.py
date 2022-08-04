@@ -17,7 +17,6 @@ def add_to_rm_db(ctx, message, emoji, role):
     exists = False
     index = 0
     for server in data['servers']:
-        index += 1
         if server['guild_id'] == ctx.guild.id:
             exists = True
             already = False
@@ -40,6 +39,8 @@ def add_to_rm_db(ctx, message, emoji, role):
             else:
                 # If it wasn't already in there we must return True so that the bot can send the message that the command worked
                 return 0
+        else:
+            index += 1
     # If the server doesn't exist we must raise an exception
     if not exists:
         return None
