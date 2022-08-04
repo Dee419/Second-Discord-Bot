@@ -182,6 +182,9 @@ class Admin_Commands(commands.Cog):
             "welcome_channel": 0,
             "moderation": [
 
+            ],
+            "role_messages": [
+
             ]
         }
         data['servers'].append(to_add)
