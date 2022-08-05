@@ -46,6 +46,27 @@ def add_to_rm_db(ctx, message, emoji, role):
     if not exists:
         return None
 
+def remove_from_rm_db(ctx, message, emoji):
+    with open('DataBase.json') as file:
+        data = json.load(file)
+
+    # First go through all the servers
+    index = 0
+    for server in data['servers']:
+        if server['guild_id'] == ctx.guild.id:
+            index = 0
+            # Once we found the server we have to check if there is a reaction message with the same emoji id
+            for role_message in server['role_messages']:
+                if role_message['message_id'] == message.id and role_message['emoji'] == emoji:
+                    server['role_messages'].pop(index)
+                    with open('DataBase.json', 'w') as file:
+                        json.dump(data, file, indent=4)
+                    # We found it, so let's return True so that we can let the bot know
+                    return True
+                index += 1
+            # We didn't find it, we have to let the bot know so that it can raise an error
+            return False
+
 class Role_Commands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -62,7 +83,7 @@ class Role_Commands(commands.Cog):
             if server['guild_id'] == guild.id:
                 for role_message in server['role_messages']:
                     rm_emoji = role_message['emoji']
-                    if role_message['message_id'] == message.id and rm_emoji == str(emoji):
+                    if role_message['message_id'] == message.id and rm_emoji == str(emoji) and not member.bot:
                         role = guild.get_role(role_message['role_id'])
                         await member.add_roles(role)
                         embed = create_embed(f":white_check_mark: You have a new role!", f"You received the role named **{role.name}** on __{guild.name}__", color="SUCCESS")
@@ -82,7 +103,7 @@ class Role_Commands(commands.Cog):
             if server['guild_id'] == guild.id:
                 for role_message in server['role_messages']:
                     rm_emoji = role_message['emoji']
-                    if role_message['message_id'] == message.id and rm_emoji == str(emoji):
+                    if role_message['message_id'] == message.id and rm_emoji == str(emoji) and not member.bot:
                         role = guild.get_role(role_message['role_id'])
                         await member.remove_roles(role)
                         embed = create_embed(f":information_source: You lost a role!", f"You lost the role named **{role.name}** on __{guild.name}__", color="INFO")
@@ -94,47 +115,99 @@ class Role_Commands(commands.Cog):
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
     @commands.bot_has_permissions(manage_roles=True)
-    async def rmsetup(self, ctx, role_message: discord.Message=None):
-        if role_message == None:
-            embed = create_embed(f":information_source: Add role message info", f"Starts the setup for a role reaction message. Start by providing the message id\nExample: `.rmsetup {ctx.message.id}`", color="INFO")
+    async def rmsetup(self, ctx, role_message=None):
+        if role_message is None:
+            embed = create_embed(f":information_source: Role message setup info", f"Starts the setup for **adding** a role reaction message. Start by providing the message id\nExample: `.rmsetup {ctx.message.id}`", color="INFO")
             await ctx.reply(embed=embed)
             return
-        else:
-            await ctx.send("React with the emoji you would like to use")
-            def first_check(reaction, user):
-                return user == ctx.author 
+        # Since we do not know the channel in question we need to try each channel
+        found = False
+        for channel in ctx.guild.channels:
             try:
-                reaction, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=first_check)
+                role_message = await channel.fetch_message(role_message)
+                found = True
+                break
+            except:
+                pass
+        if not found:
+            raise commands.BadArgument
+
+        await ctx.send("React with the emoji you would like to use")
+        def first_check(reaction, user):
+            return user == ctx.author 
+        try:
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=first_check)
+        except asyncio.TimeoutError:
+            await ctx.send("You took too long to respond")
+        else:
+            emoji = reaction.emoji[0]
+            print(f"{user.name}#{user.discriminator} reacted with {emoji}")
+
+            await ctx.send('Please provide the id of the role')
+            def check(message):
+                return message.channel == ctx.channel and message.author == ctx.author
+            try:
+                user_input = await self.bot.wait_for('message', check=check)
             except asyncio.TimeoutError:
                 await ctx.send("You took too long to respond")
             else:
-                emoji = reaction.emoji[0]
-                print(f"{user.name}#{user.discriminator} reacted with {emoji}")
-
-                await ctx.send('Please provide the id of the role')
-                def check(message):
-                    return message.channel == ctx.channel and message.author == ctx.author
+                print(f"{user.name}#{user.discriminator} provided {user_input.content}")
                 try:
-                    user_input = await self.bot.wait_for('message', check=check)
-                except asyncio.TimeoutError:
-                    await ctx.send("You took too long to respond")
+                    role = ctx.guild.get_role(int(user_input.content))
+                except:
+                    raise commands.BadArgument
                 else:
-                    print(f"{user.name}#{user.discriminator} provided {user_input.content}")
-                    try:
-                        role = ctx.guild.get_role(int(user_input.content))
-                    except:
-                        raise commands.BadArgument
+                    await role_message.add_reaction(emoji)
+                    code = add_to_rm_db(ctx, role_message, emoji, role)
+                    if code == 0:
+                        embed = create_embed(f":information_source: Successfully added reaction role", f"Added reaction role to message {role_message.id} with emoji {emoji} for role {role.mention}", color="SUCCESS")
+                        await ctx.reply(embed=embed)
+                    elif code == 1:
+                        embed = create_embed(f":warning: Changed role for reaction role", f"Reaction role for message {role_message.id} with emoji {emoji} already existed. Changed role to {role.mention}", color="WARNING")
+                        await ctx.reply(embed=embed)
                     else:
-                        await role_message.add_reaction(emoji)
-                        code = add_to_rm_db(ctx, role_message, emoji, role)
-                        if code == 0:
-                            embed = create_embed(f":information_source: Successfully added reaction role", f"Added reaction role to message {role_message.id} with emoji {emoji} for role {role.mention}", color="SUCCESS")
-                            await ctx.reply(embed=embed)
-                        elif code == 1:
-                            embed = create_embed(f":warning: Changed role for reaction role", f"Reaction role for message {role_message.id} with emoji {emoji} already existed. Changed role to {role.mention}", color="WARNING")
-                            await ctx.reply(embed=embed)
-                        else:
-                            raise commands.CommandInvokeError
+                        raise commands.CommandInvokeError
+
+    @commands.command(help="Starts the setup for a role reaction message. Start by providing the message id")
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    @commands.bot_has_permissions(manage_roles=True)
+    async def rmremove(self, ctx, role_message=None):
+        if role_message is None:
+            embed = create_embed(f":information_source: Role message remove info", f"Starts the setup for **removing** a role reaction message. Start by providing the message id\nExample: `.rmremove {ctx.message.id}`", color="INFO")
+            await ctx.reply(embed=embed)
+            return
+        # Since we do not know the channel in question we need to try each channel
+        found = False
+        for channel in ctx.guild.channels:
+            try:
+                role_message = await channel.fetch_message(role_message)
+                found = True
+                break
+            except:
+                pass
+        if not found:
+            raise commands.BadArgument
+        
+        await ctx.send("Give the ordinal position of the emoji. In other words; how far in the line is the emoji?\nExample: `3` in case the emoji is the third in the list of reactions")
+        def check(message):
+            return message.channel == ctx.channel and message.author == ctx.author
+        try:
+            user_input = await self.bot.wait_for('message', check=check)
+        except asyncio.TimeoutError:
+            await ctx.send("You took too long to respond")
+        else:
+            user_input = int(user_input.content) - 1
+            emoji = role_message.reactions[user_input].emoji
+            await ctx.send(f"You chose {emoji}")
+            print(f"{ctx.author.name}#{ctx.author.discriminator} provided {user_input}")
+            if user_input < 0 or user_input > len(role_message.reactions):
+                raise commands.BadArgument
+            elif remove_from_rm_db(ctx, role_message, emoji):
+                embed = create_embed(f":information_source: Successfully removed reaction role", f"Removed reaction role to message {role_message.id} with emoji {emoji}", color="SUCCESS")
+                await ctx.reply(embed=embed)
+            else:
+                raise commands.CommandInvokeError
 
     @rmsetup.error
     async def rmsetup_error(self, ctx, error):
@@ -146,4 +219,16 @@ class Role_Commands(commands.Cog):
             await ctx.reply(embed=embed)
         elif isinstance(error, commands.MissingPermissions):
             embed = create_embed(f":x: Role message setup failed", f"You don't have permission to use this command!", color="ERROR")
+            await ctx.reply(embed=embed)
+
+    @rmsetup.error
+    async def rmsetup_error(self, ctx, error):
+        if isinstance(error, commands.BadArgument):
+            embed = create_embed(f":x: Role message remove failed", f"Given input is invalid", color="ERROR")
+            await ctx.reply(embed=embed)
+        elif isinstance(error, commands.CommandInvokeError):
+            embed = create_embed(f":x: Role message remove failed", f"Server not found in database, please use `.addservertodatabase`", color="ERROR")
+            await ctx.reply(embed=embed)
+        elif isinstance(error, commands.MissingPermissions):
+            embed = create_embed(f":x: Role message remove failed", f"You don't have permission to use this command!", color="ERROR")
             await ctx.reply(embed=embed)
