@@ -57,9 +57,9 @@ class Admin_Commands(commands.Cog):
                 reason = "no reason given"
             if not add_to_moderation_db(ctx, target, reason, "KICK"):
                 raise commands.CommandInvokeError("NotFoundInDatabase")
+            await target.kick(reason=reason)
             embed = create_embed(f":white_check_mark: Kick successfull", f"{target.name}#{target.discriminator} has been kicked for {reason}!", time=True, color="SUCCESS")
             await ctx.reply(embed=embed)
-            await target.kick(reason=reason)
             
             embed = create_embed(f":warning: You have been kicked!", f"You have been kicked from **{ctx.guild.name}** for {reason}!", color="ERROR")
             channel = await target.create_dm()
@@ -86,8 +86,6 @@ class Admin_Commands(commands.Cog):
                 reason = "no reason given"
             if not add_to_moderation_db(ctx, target, reason, "BAN"):
                 raise commands.CommandInvokeError("NotFoundInDatabase")
-            embed = create_embed(f":white_check_mark: Ban successfull", f"{target.name}#{target.discriminator} has been banned for {reason}!", time=True, color="SUCCESS")
-            await ctx.reply(embed=embed)
             try:
                 await target.ban(reason=reason)
             except:
@@ -98,6 +96,8 @@ class Admin_Commands(commands.Cog):
                         await ctx.guild.ban(target.id, reason=reason)
                     except:
                         raise commands.UserNotFound
+            embed = create_embed(f":white_check_mark: Ban successfull", f"{target.name}#{target.discriminator} has been banned for {reason}!", time=True, color="SUCCESS")
+            await ctx.reply(embed=embed)
 
             embed = create_embed(f":warning: You have been banned!", f"You have been banned from **{ctx.guild.name}** for {reason}!", color="ERROR")
             channel = await target.create_dm()

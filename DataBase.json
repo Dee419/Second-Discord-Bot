@@ -13,6 +13,61 @@
                     "date": "1/08/2000",
                     "time": "00:00:00"
                 }
+            ],
+            "role_messages": [
+                {
+                    "message_id": 0,
+                    "emoji": 0,
+                    "role_id": 0
+                }
+            ]
+        },
+        {
+            "guild_id": 987318210904854548,
+            "chat_log_channel_id": 988180984337928212,
+            "welcome_channel": 0,
+            "moderation": [
+                {
+                    "action_id": 1,
+                    "action_type": "BAN",
+                    "user_id": 582712622634369065,
+                    "reason": "no reason given",
+                    "date": "05/08/2022",
+                    "time": "15:22:18"
+                },
+                {
+                    "action_id": 2,
+                    "action_type": "BAN",
+                    "user_id": 582712622634369065,
+                    "reason": "Test",
+                    "date": "05/08/2022",
+                    "time": "15:28:59"
+                }
+            ],
+            "role_messages": [
+                {
+                    "message_id": 1004859270870859826,
+                    "emoji": "\ud83d\ude0f",
+                    "role_id": 1002786082393432204
+                },
+                {
+                    "message_id": 1004859270870859826,
+                    "emoji": "\ud83d\udc4c",
+                    "role_id": 1005008971377168385
+                }
+            ]
+        },
+        {
+            "guild_id": 995790724937285652,
+            "chat_log_channel_id": 1001257643266015322,
+            "welcome_channel": 0,
+            "moderation": [],
+            "role_messages": [
+                {
+                    "message_id": 1004864196762161232,
+                    "emoji": "\ud83d\udc6e",
+                    "role_id": 1001218973905457222
+                }
             ]
         }
     ],
