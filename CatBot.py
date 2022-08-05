@@ -19,6 +19,7 @@ bot = commands.Bot(command_prefix='.', intents=intents)
 bot.add_cog(Admin_Commands(bot))
 bot.add_cog(Fun_Commands(bot))
 bot.add_cog(Role_Commands(bot))
+non_cached_messages = []
 
 # Used to see when the bot is available
 @bot.event
@@ -50,15 +51,16 @@ async def on_guild_join(guild):
         json.dump(data, file, indent=4)
 
 @bot.event
-async def on_message_delete(message):
-    # First check if the server is in the database
+async def on_raw_message_delete(payload):
+    message = payload.cached_message
     chat_log_channel_id = None
     with open('DataBase.json') as file:
         data = json.load(file)
     for server in data['servers']:
-        if server['guild_id'] == message.guild.id:
+        if server['guild_id'] == payload.guild_id:
             chat_log_channel_id = server['chat_log_channel_id']
-    if chat_log_channel_id is not None and chat_log_channel_id != 0:
+    if message is not None and chat_log_channel_id is not None and chat_log_channel_id != 0:
+        # We have the message in our cache and we have the chat log channel
         chat_log_channel = bot.get_channel(chat_log_channel_id)
         
         time = (datetime.datetime.now()).strftime("%H:%M:%S")
@@ -75,21 +77,37 @@ async def on_message_delete(message):
         else:
             embed = create_embed(f":wastebasket: {message.author}'s message sent on {created_at} CET was deleted ({message.id})", f"{content}", f"Channel: {message.channel.name} | {today} - {time} CET | User ID: {message.author.id}", color="ERROR")
         await chat_log_channel.send(embed = embed)
-
-@bot.event
-async def on_message_edit(before, after):
-    # First check if the server is in the database
-    chat_log_channel_id = None
-    with open('DataBase.json') as file:
-        data = json.load(file)
-    for server in data['servers']:
-        if server['guild_id'] == before.guild.id:
-            chat_log_channel_id = server['chat_log_channel_id']
-    if chat_log_channel_id is not None and chat_log_channel_id != 0:
+    elif chat_log_channel_id is not None and chat_log_channel_id != 0:
+        # We don't have the message in our cache but we do have the chat log channel
         chat_log_channel = bot.get_channel(chat_log_channel_id)
         
         time = (datetime.datetime.now()).strftime("%H:%M:%S")
         today = (datetime.date.today()).strftime("%d/%m/%Y")
+        embed = create_embed(f":wastebasket: Message ({payload.message_id}) was deleted", f"*Content could not be retrieved*", f"Channel: {bot.get_channel(payload.channel_id).name} | {today} - {time} CET | This message was not saved in my cache", color="ERROR")
+        await chat_log_channel.send(embed = embed)
+
+@bot.event
+async def on_raw_message_edit(payload):
+    chat_log_channel_id = None
+    with open('DataBase.json') as file:
+        data = json.load(file)
+    for server in data['servers']:
+        if server['guild_id'] == payload.guild_id:
+            chat_log_channel_id = server['chat_log_channel_id']
+    message = payload.cached_message
+    if message is None:
+        # We will try and retrieve the message from non_cached_messages
+        for non_cached_message in non_cached_messages:
+            if non_cached_message.id == payload.message_id:
+                message = non_cached_message
+    if message is not None and chat_log_channel_id is not None and chat_log_channel_id != 0:
+        # We have the message in our cache and we have the chat log channel
+        chat_log_channel = bot.get_channel(chat_log_channel_id)
+        
+        time = (datetime.datetime.now()).strftime("%H:%M:%S")
+        today = (datetime.date.today()).strftime("%d/%m/%Y")
+        before = message
+        after = await bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
         if before.content == "":
             before_content = "**No text to display**"
         else:
@@ -98,6 +116,20 @@ async def on_message_edit(before, after):
         embed.set_footer(text=f"Channel: {before.channel.name} | {today} - {time} CET | User ID: {before.author.id}")
         embed.add_field(name=f"**Old message:**", value=f"{before_content}", inline=False)
         embed.add_field(name=f"**New message:**", value=f"{after.content}", inline=False)
+        await chat_log_channel.send(embed = embed)
+    elif chat_log_channel_id is not None and chat_log_channel_id != 0:
+        # We don't have the message in our cache but we do have the chat log channel
+        chat_log_channel = bot.get_channel(chat_log_channel_id)
+
+        time = (datetime.datetime.now()).strftime("%H:%M:%S")
+        today = (datetime.date.today()).strftime("%d/%m/%Y")
+        after = await bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
+        before_content = "*Content could not be retrieved*"
+        embed = create_embed(f":screwdriver: {after.author} edited message ({after.id})", "", color="WARNING")
+        embed.set_footer(text=f"Channel: {after.channel.name} | {today} - {time} CET | User ID: {after.author.id} | This message was not saved in my cache")
+        embed.add_field(name=f"**Old message:**", value=f"{before_content}", inline=False)
+        embed.add_field(name=f"**New message:**", value=f"{after.content}", inline=False)
+        non_cached_messages.append(after)
         await chat_log_channel.send(embed = embed)
     
 print("Starting bot")

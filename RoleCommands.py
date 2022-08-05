@@ -96,7 +96,7 @@ class Role_Commands(commands.Cog):
     @commands.bot_has_permissions(manage_roles=True)
     async def rmsetup(self, ctx, role_message: discord.Message=None):
         if role_message == None:
-            embed = create_embed(f":information_source: Add role message info", f"Starts the setup for a role reaction message. Start by providing the message id\nExample: `.rmsetup 1004859270870859826`", color="INFO")
+            embed = create_embed(f":information_source: Add role message info", f"Starts the setup for a role reaction message. Start by providing the message id\nExample: `.rmsetup {ctx.message.id}`", color="INFO")
             await ctx.reply(embed=embed)
             return
         else:
@@ -113,8 +113,6 @@ class Role_Commands(commands.Cog):
 
                 await ctx.send('Please provide the id of the role')
                 def check(message):
-                    print(message.content)
-                    print(message.channel, ctx.channel, message.author, ctx.author)
                     return message.channel == ctx.channel and message.author == ctx.author
                 try:
                     user_input = await self.bot.wait_for('message', check=check)
