@@ -49,6 +49,7 @@ class Admin_Commands(commands.Cog):
             raise commands.BadArgument
         else:
             if len(args) > 0:
+                reason = ""
                 for arg in args:
                     reason += arg + " "
                 reason = reason[:-1]
@@ -77,6 +78,7 @@ class Admin_Commands(commands.Cog):
             raise commands.BadArgument
         else:
             if len(args) > 0:
+                reason = ""
                 for arg in args:
                     reason += arg + " "
                 reason = reason[:-1]
@@ -86,7 +88,16 @@ class Admin_Commands(commands.Cog):
                 raise commands.CommandInvokeError("NotFoundInDatabase")
             embed = create_embed(f":white_check_mark: Ban successfull", f"{target.name}#{target.discriminator} has been banned for {reason}!", time=True, color="SUCCESS")
             await ctx.reply(embed=embed)
-            await target.ban(reason=reason)
+            try:
+                await target.ban(reason=reason)
+            except:
+                try:
+                    await ctx.guild.ban(target, reason=reason)
+                except:
+                    try:
+                        await ctx.guild.ban(target.id, reason=reason)
+                    except:
+                        raise commands.UserNotFound
 
             embed = create_embed(f":warning: You have been banned!", f"You have been banned from **{ctx.guild.name}** for {reason}!", color="ERROR")
             channel = await target.create_dm()
@@ -264,6 +275,12 @@ class Admin_Commands(commands.Cog):
             await ctx.reply(embed=embed)
         elif isinstance(error, commands.BadArgument):
             embed = create_embed(f":x: Ban failed", f"I can't ban myself. Just manually ban me if you really want me gone ;-;", color="ERROR")
+            await ctx.reply(embed=embed)
+        elif isinstance(error, commands.MemberNotFound):
+            embed = create_embed(f":x: Ban failed", f"I can't ban users who are not on the server", color="ERROR")
+            await ctx.reply(embed=embed)
+        elif isinstance(error, commands.UserNotFound):
+            embed = create_embed(f":x: Ban failed", f"The user given does not exist", color="ERROR")
             await ctx.reply(embed=embed)
 
     @purge.error
