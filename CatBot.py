@@ -60,6 +60,9 @@ async def on_raw_message_delete(payload):
         if server['guild_id'] == payload.guild_id:
             chat_log_channel_id = server['chat_log_channel_id']
     if message is not None and chat_log_channel_id is not None and chat_log_channel_id != 0:
+        # Ignore messages where the content stays the same or the author is a bot
+        if message.content == message.content or message.author.bot:
+            return
         # We have the message in our cache and we have the chat log channel
         chat_log_channel = bot.get_channel(chat_log_channel_id)
         
@@ -108,8 +111,8 @@ async def on_raw_message_edit(payload):
         today = (datetime.date.today()).strftime("%d/%m/%Y")
         before = message
         after = await bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
-        # Ignore messages where the content stays the same
-        if before.content == after.content:
+        # Ignore messages where the content stays the same or the author is a bot
+        if before.content == after.content or before.author.bot:
             return
         if before.content == "":
             before_content = "**No text to display**"
