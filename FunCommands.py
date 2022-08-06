@@ -17,7 +17,6 @@ class Fun_Commands(commands.Cog):
         for emoji in moves:
             await message.add_reaction(emoji)
         def check(reaction, user):
-            print(user.id, ctx.author.id, reaction.emoji, r"\U+1FAA8")
             return user.id == ctx.author.id and \
             str(reaction.emoji) in ['🪨', '🧻', '✂️']
 
