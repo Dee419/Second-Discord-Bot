@@ -101,6 +101,9 @@ async def on_raw_message_edit(payload):
             if non_cached_message.id == payload.message_id:
                 message = non_cached_message
     if message is not None and chat_log_channel_id is not None and chat_log_channel_id != 0:
+        # Ignore messages where the content stays the same
+        if message.content == message.content:
+            return
         # We have the message in our cache and we have the chat log channel
         chat_log_channel = bot.get_channel(chat_log_channel_id)
         
