@@ -136,4 +136,5 @@ async def on_raw_message_edit(payload):
         await chat_log_channel.send(embed = embed)
     
 print("Starting bot")
+# It's true
 bot.run("OTg3MzE4NTkwMTkxNTgzMzAy.GmC2Kq.7bdFq5L1JZq-vUSd6EePT2m8F7pKR1AMhVSMY0")
