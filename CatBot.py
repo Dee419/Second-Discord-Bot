@@ -141,5 +141,5 @@ async def on_raw_message_edit(payload):
 print("Starting bot")
 # It's true
 with open('token.txt') as file:
-    token = file.readlines()
+    token = file.readline()
 bot.run(token)
