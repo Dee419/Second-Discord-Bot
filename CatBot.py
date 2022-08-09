@@ -61,7 +61,7 @@ async def on_raw_message_delete(payload):
             chat_log_channel_id = server['chat_log_channel_id']
     if message is not None and chat_log_channel_id is not None and chat_log_channel_id != 0:
         # Ignore messages where the content stays the same or the author is a bot
-        if message.content == message.content or message.author.bot:
+        if message.author.bot:
             return
         # We have the message in our cache and we have the chat log channel
         chat_log_channel = bot.get_channel(chat_log_channel_id)
