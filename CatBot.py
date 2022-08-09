@@ -140,4 +140,6 @@ async def on_raw_message_edit(payload):
     
 print("Starting bot")
 # It's true
-bot.run("OTg3MzE4NTkwMTkxNTgzMzAy.GmC2Kq.7bdFq5L1JZq-vUSd6EePT2m8F7pKR1AMhVSMY0")
+with open('token.txt') as file:
+    token = file.readlines()
+bot.run(token)
