@@ -1,26 +1,33 @@
 {
     "servers": [
         {
-            "guild_id": 0,
-            "chat_log_channel_id": 0,
-            "welcome_channel": 0,
-            "moderation": [
-                {
-                    "action_id": 0,
-                    "action_type": "KICK",
-                    "user_id": 0,
-                    "reason": "REASON",
-                    "date": "1/08/2000",
-                    "time": "00:00:00"
-                }
-            ],
-            "role_messages": [
-                {
-                    "message_id": 0,
-                    "emoji": 0,
-                    "role_id": 0
-                }
-            ]
+            "GUILD_ID": {
+                "chat_log_channel_id": 0,
+                "welcome_channel": 0,
+                "moderation": [
+                    {
+                        "USER_ID": [
+                            {
+                                "action_id": 0,
+                                "action_type": "KICK",
+                                "reason": "REASON",
+                                "date": "1/08/2000",
+                                "time": "00:00:00"
+                            }
+                        ]
+                    }
+                ],
+                "role_messages": [
+                    {
+                        "MESSAGE_ID": [
+                            {
+                                "emoji": "EMOJI",
+                                "role_id": 0
+                            }
+                        ]
+                    }
+                ]
+            }
         }
     ],
     "last_id": 0
