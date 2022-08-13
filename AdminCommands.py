@@ -13,24 +13,38 @@ def add_to_moderation_db(ctx, target, reason, type):
     id = data['last_id'] + 1
     data['last_id'] = id
     action_entry = {
-        "action_id": id,
-        "action_type": type,
-        "user_id": target.id,
-        "reason": reason,
-        "date": today,
-        "time": time
+        "id": id,
+        "reason": f"{reason}",
+        "date": f"{today}",
+        "time": f"{time}"
     }
-    already = False
-    for server in data['servers']:
-        if server['guild_id'] == ctx.guild.id:
-            server['moderation'].append(action_entry)
-            already = True
-            break
-    if not already:
+    # Try to add to the user's punishments
+    try:
+        data['servers'][f"{ctx.guild.id}"]['moderation'][f"{target.id}"][f"{type}"].append(action_entry)
+    except:
+        # All hope is lost
         return False
     with open('DataBase.json', 'w') as file:
         json.dump(data, file, indent=4)
     return True
+
+def list_helper(ctx, target, type: str):
+    if target is None:
+        target = ctx.author
+    with open('DataBase.json') as file:
+        data = json.load(file)
+    try:
+        entries = data['servers'][f"{ctx.guild.id}"]['moderation'][f"{target.id}"][f"{type.upper()}"]
+    except:
+        entries = {}
+    if len(entries) > 0:
+        embed = create_embed(f"{type.capitalize()}s for {target.name}#{target.discriminator}", "")
+        for entry in entries:
+            embed.add_field(name=f"{type.capitalize()} for {target.name}#{target.discriminator}", value=f"\n**ID**: {entry['id']}\n**Reason**: {entry['reason']}\n**Date**: {entry['date']}\n**Time**: {entry['time']} CET\n", inline=False)
+        return embed
+    else:
+        embed = create_embed(f"No {type}s found", f"No {type}s found for {target.name}#{target.discriminator}")
+        return embed
 
 class Admin_Commands(commands.Cog):
     def __init__(self, bot):
@@ -188,15 +202,16 @@ class Admin_Commands(commands.Cog):
                 return
         # If the server is not yet in the database we must add it to the database
         to_add = {
-            "guild_id": ctx.guild.id,
-            "chat_log_channel_id": 0,
-            "welcome_channel": 0,
-            "moderation": [
+            f"{ctx.guild.id}": {
+                "chat_log_channel_id": 0,
+                "welcome_channel": 0,
+                "moderation": {
+                    
+                },
+                "role_messages": {
 
-            ],
-            "role_messages": [
-
-            ]
+                }
+            }
         }
         data['servers'].append(to_add)
         with open('DataBase.json', 'w') as file:
@@ -204,47 +219,23 @@ class Admin_Commands(commands.Cog):
         embed = create_embed(":white_check_mark: Successfully added the server to the database", f"Added this server to the database. Remember to use `.setchatlogchannel` to set the chat log channel", color="SUCCESS")
         await ctx.reply(embed=embed)
 
-    @commands.command(help="Lists all of the punishments on the server or all of the punishments of a user")
+    @commands.command(help="Lists all of the warns of a specific user")
     @commands.guild_only()
-    async def listpunishments(self, ctx, target: discord.User=None):
-        with open('DataBase.json') as file:
-            data = json.load(file)
-        found = False
-        for server in data['servers']:
-            if server['guild_id'] == ctx.guild.id:
-                found = True
-                entries = 0
-                for entry in server['moderation']:
-                    if target is None:
-                        entries += 1
-                        user = self.bot.get_user(entry['user_id'])
-                        if entry['action_type'] == "KICK":
-                            type = "Kick"
-                        elif entry['action_type'] == "BAN":
-                            type = "Ban"
-                        else:
-                            type = "Warn"
-                        embed = create_embed(f"{type} for {user.name}#{user.discriminator}", f"**User ID:** {user.id}\n**Reason:** {entry['reason']}\n**Action ID:** {entry['action_id']}\n**Date:** {entry['date']}\n**Time:** {entry['time']}")
-                        await ctx.send(embed=embed)
-                    elif target.id == entry['user_id']:
-                        entries += 1
-                        user = self.bot.get_user(entry['user_id'])
-                        if entry['action_type'] == "KICK":
-                            type = "Kick"
-                        elif entry['action_type'] == "BAN":
-                            type = "Ban"
-                        else:
-                            type = "Warn"
-                        embed = create_embed(f"{type} for {user.name}#{user.discriminator}", f"**User ID:** {user.id}\n**Reason:** {entry['reason']}\n**Action ID:** {entry['action_id']}\n**Date:** {entry['date']}\n**Time:** {entry['time']}")
-                        await ctx.send(embed=embed)
-                if entries == 0 and target is None:
-                    embed = create_embed(":information_source: No punishments found", "No punishments found, this server is squeeky clean!")
-                    await ctx.reply(embed=embed)
-                elif entries == 0:
-                    embed = create_embed(":information_source: No punishments found", "No punishments found for this user, very nice!")
-                    await ctx.reply(embed=embed)
-        if not found:
-            raise commands.CommandInvokeError("NotFoundInDatabase")
+    async def listwarns(self, ctx, target: discord.User=None):
+        embed = list_helper(ctx, target, "warn")
+        await ctx.reply(embed=embed)
+    
+    @commands.command(help="Lists all of the kicks of a specific user")
+    @commands.guild_only()
+    async def listkicks(self, ctx, target: discord.User=None):
+        embed = list_helper(ctx, target, "kick")
+        await ctx.reply(embed=embed)
+
+    @commands.command(help="Lists all of the bans of a specific user")
+    @commands.guild_only()
+    async def listbans(self, ctx, target: discord.User=None):
+        embed = list_helper(ctx, target, "ban")
+        await ctx.reply(embed=embed)
 
     # Error handlers
     @kick.error
@@ -313,7 +304,19 @@ class Admin_Commands(commands.Cog):
             embed = create_embed(f":x: Add server to database failed", f"You don't have permission to add the server to the database!", color="ERROR")
             await ctx.reply(embed=embed)
 
-    @listpunishments.error
+    @listwarns.error
+    async def listpunishments_error(self, ctx, error):
+        if isinstance(error, commands.CommandInvokeError):
+            embed = create_embed(f":x: List punishments failed", f"Server not found in database, please use `.addservertodatabase`", color="ERROR")
+            await ctx.reply(embed=embed)
+
+    @listkicks.error
+    async def listpunishments_error(self, ctx, error):
+        if isinstance(error, commands.CommandInvokeError):
+            embed = create_embed(f":x: List punishments failed", f"Server not found in database, please use `.addservertodatabase`", color="ERROR")
+            await ctx.reply(embed=embed)
+
+    @listbans.error
     async def listpunishments_error(self, ctx, error):
         if isinstance(error, commands.CommandInvokeError):
             embed = create_embed(f":x: List punishments failed", f"Server not found in database, please use `.addservertodatabase`", color="ERROR")

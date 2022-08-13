@@ -36,16 +36,17 @@ async def on_guild_join(guild):
             return
     # If the server is not yet in the database we must add it to the database
     to_add = {
-        "guild_id": guild.id,
-        "chat_log_channel_id": 0,
-        "welcome_channel": 0,
-        "moderation": [
-        
-        ],
-        "role_messages": [
-
-        ]
-    }
+            f"{guild.id}": {
+                "chat_log_channel_id": 0,
+                "welcome_channel": 0,
+                "moderation": {
+                    
+                },
+                "role_messages": {
+                    
+                }
+            }
+        }
     data['servers'].append(to_add)
     with open('DataBase.json', 'w') as file:
         json.dump(data, file, indent=4)
@@ -56,9 +57,10 @@ async def on_raw_message_delete(payload):
     chat_log_channel_id = None
     with open('DataBase.json') as file:
         data = json.load(file)
-    for server in data['servers']:
-        if server['guild_id'] == payload.guild_id:
-            chat_log_channel_id = server['chat_log_channel_id']
+    try:
+        chat_log_channel_id = data['servers'][f"{message.guild.id}"]['chat_log_channel_id']
+    except:
+        pass
     if message is not None and chat_log_channel_id is not None and chat_log_channel_id != 0:
         # Ignore messages where the content stays the same or the author is a bot
         if message.author.bot:
@@ -91,13 +93,10 @@ async def on_raw_message_delete(payload):
 
 @bot.event
 async def on_raw_message_edit(payload):
-    chat_log_channel_id = None
     with open('DataBase.json') as file:
         data = json.load(file)
-    for server in data['servers']:
-        if server['guild_id'] == payload.guild_id:
-            chat_log_channel_id = server['chat_log_channel_id']
     message = payload.cached_message
+    chat_log_channel_id = data['servers'][f"{message.guild.id}"]['chat_log_channel_id']
     if message is None:
         # We will try and retrieve the message from non_cached_messages
         for non_cached_message in non_cached_messages:

@@ -8,64 +8,51 @@ from Embed import create_embed
 def add_to_rm_db(ctx, message, emoji, role):
     with open('DataBase.json') as file:
         data = json.load(file)
+    if f"{ctx.guild.id}" not in data['servers']:
+        # If the server is not yet in the database we return None so the bot can know
+        return None
 
     rm_entry = {
-        "message_id": message.id,
         "emoji": emoji,
         "role_id": role.id
     }
-    # First go through all the servers
-    exists = False
-    index = 0
-    for server in data['servers']:
-        if server['guild_id'] == ctx.guild.id:
-            exists = True
-            already = False
-            # Once we found the server we have to check if there is already a reaction message with the same emoji id
-            for role_message in server['role_messages']:
-                if role_message['message_id'] == message.id and role_message['emoji'] == emoji:
-                    # If so we'll just change the role id to the new role
-                    role_message['role_id'] = role.id
-                    already = True
-                    break
-            # If we haven't found a reaction message with the same emoji we'll just add the rm_entry to the server in the database
-            if not already:
-                data['servers'][index]['role_messages'].append(rm_entry)
-            # Then we dump it into the json like usual
-            with open('DataBase.json', 'w') as file:
-                json.dump(data, file, indent=4)
-            if already:
-                # If it was already in there we must return False so that the bot can send the message that it only changed the role
-                return 1
-            else:
-                # If it wasn't already in there we must return True so that the bot can send the message that the command worked
-                return 0
-        else:
-            index += 1
-    # If the server doesn't exist we must raise an exception
-    if not exists:
-        return None
+    try:
+        data['servers'][f"{ctx.guild.id}"]['role_messages'][f"{message.id}"]['role_id'] = role.id
+        already = True
+    except:
+        data['servers'][f"{ctx.guild.id}"]['role_messages'][f"{message.id}"].append(rm_entry)
+        already = False
+    with open('DataBase.json', 'w') as file:
+        json.dump(data, file, indent=4)
+    if already:
+        # If it was already in there we must return False so that the bot can send the message that it only changed the role
+        return 1
+    else:
+        # If it wasn't already in there we must return True so that the bot can send the message that the command worked
+        return 0
 
 def remove_from_rm_db(ctx, message, emoji):
     with open('DataBase.json') as file:
         data = json.load(file)
-
-    # First go through all the servers
+    if f"{ctx.guild.id}" not in data['servers']:
+        # If the server is not yet in the database we return None so the bot can know
+        return None
+    
+    role_message = data['servers'][f"{ctx.guild.id}"]['role_messages'][f"{message.id}"]
+    if role_message is None or len(role_message) == 0:
+        return
+    # First we need to find the entry
     index = 0
-    for server in data['servers']:
-        if server['guild_id'] == ctx.guild.id:
-            index = 0
-            # Once we found the server we have to check if there is a reaction message with the same emoji id
-            for role_message in server['role_messages']:
-                if role_message['message_id'] == message.id and role_message['emoji'] == emoji:
-                    server['role_messages'].pop(index)
-                    with open('DataBase.json', 'w') as file:
-                        json.dump(data, file, indent=4)
-                    # We found it, so let's return True so that we can let the bot know
-                    return True
-                index += 1
-            # We didn't find it, we have to let the bot know so that it can raise an error
-            return False
+    for role_reaction in role_message:
+        if role_reaction['emoji'] == emoji:
+            data['servers'][f"{ctx.guild.id}"]['role_messages'][f"{message.id}"].pop(index)
+            with open('DataBase.json', 'w') as file:
+                json.dump(data, file, indent=4)
+            # We found it, so let's return True so that we can let the bot know
+            return True
+        index += 1
+    # We didn't find it, we have to let the bot know so that it can raise an error
+    return False
 
 class Role_Commands(commands.Cog):
     def __init__(self, bot):
@@ -79,17 +66,18 @@ class Role_Commands(commands.Cog):
         guild = self.bot.get_guild(payload.guild_id)
         with open('DataBase.json') as file:
             data = json.load(file)
-        for server in data['servers']:
-            if server['guild_id'] == guild.id:
-                for role_message in server['role_messages']:
-                    rm_emoji = role_message['emoji']
-                    if role_message['message_id'] == message.id and rm_emoji == str(emoji) and not member.bot:
-                        role = guild.get_role(role_message['role_id'])
-                        await member.add_roles(role)
-                        embed = create_embed(f":white_check_mark: You have a new role!", f"You received the role named **{role.name}** on __{guild.name}__", color="SUCCESS")
-                        channel = await member.create_dm()
-                        await channel.send(embed=embed)
-                        return
+
+        role_message = data['servers'][f"{guild.id}"]['role_messages'][f"{message.id}"]
+        if role_message is None or len(role_message) == 0:
+            return
+        for role_reaction in role_message:
+            if role_reaction['emoji'] == str(emoji) and not member.bot:
+                role = guild.get_role(role_reaction['role_id'])
+                await member.add_roles(role)
+                embed = create_embed(f":white_check_mark: You have a new role!", f"You received the role named **{role.name}** on __{guild.name}__", color="SUCCESS")
+                channel = await member.create_dm()
+                await channel.send(embed=embed)
+                return
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload):
@@ -99,17 +87,18 @@ class Role_Commands(commands.Cog):
         member = get(guild.members, id=payload.user_id)
         with open('DataBase.json') as file:
             data = json.load(file)
-        for server in data['servers']:
-            if server['guild_id'] == guild.id:
-                for role_message in server['role_messages']:
-                    rm_emoji = role_message['emoji']
-                    if role_message['message_id'] == message.id and rm_emoji == str(emoji) and not member.bot:
-                        role = guild.get_role(role_message['role_id'])
-                        await member.remove_roles(role)
-                        embed = create_embed(f":information_source: You lost a role!", f"You lost the role named **{role.name}** on __{guild.name}__", color="INFO")
-                        channel = await member.create_dm()
-                        await channel.send(embed=embed)
-                        return
+         
+        role_message = data['servers'][f"{guild.id}"]['role_messages'][f"{message.id}"]
+        if role_message is None or len(role_message) == 0:
+            return
+        for role_reaction in role_message:
+            if role_reaction['emoji'] == str(emoji) and not member.bot:
+                role = guild.get_role(role_reaction['role_id'])
+                await member.remove_roles(role)
+                embed = create_embed(f":white_check_mark: You have a new role!", f"You received the role named **{role.name}** on __{guild.name}__", color="SUCCESS")
+                channel = await member.create_dm()
+                await channel.send(embed=embed)
+                return
 
     @commands.command(help="Starts the setup for a role reaction message. Start by providing the message id")
     @commands.guild_only()
@@ -168,13 +157,13 @@ class Role_Commands(commands.Cog):
                     else:
                         raise commands.CommandInvokeError
 
-    @commands.command(help="Starts the setup for a role reaction message. Start by providing the message id")
+    @commands.command(help="Starts the removal of a role reaction message. Start by providing the message id")
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
     @commands.bot_has_permissions(manage_roles=True)
     async def rmremove(self, ctx, role_message=None):
         if role_message is None:
-            embed = create_embed(f":information_source: Role message remove info", f"Starts the setup for **removing** a role reaction message. Start by providing the message id\nExample: `.rmremove {ctx.message.id}`", color="INFO")
+            embed = create_embed(f":information_source: Role message remove info", f"Starts the **removal** a role reaction message. Start by providing the message id\nExample: `.rmremove {ctx.message.id}`", color="INFO")
             await ctx.reply(embed=embed)
             return
         # Since we do not know the channel in question we need to try each channel
