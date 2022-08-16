@@ -5,7 +5,8 @@ from discord.ext import commands
 from discord.utils import get
 from Embed import create_embed
 
-def add_to_rm_db(ctx, message, emoji, role):
+# Adds a role reaction to the database
+def add_to_rr_db(ctx, message, emoji, role):
     with open('DataBase.json') as file:
         data = json.load(file)
     if f"{ctx.guild.id}" not in data['servers']:
@@ -25,13 +26,14 @@ def add_to_rm_db(ctx, message, emoji, role):
     with open('DataBase.json', 'w') as file:
         json.dump(data, file, indent=4)
     if already:
-        # If it was already in there we must return False so that the bot can send the message that it only changed the role
+        # If it was already in there we must return 1 so that the bot can send the message that it only changed the role
         return 1
     else:
-        # If it wasn't already in there we must return True so that the bot can send the message that the command worked
+        # If it wasn't already in there we must return 0 so that the bot can send the message that the command worked
         return 0
 
-def remove_from_rm_db(ctx, message, emoji):
+# Removes a role reaction from the database
+def remove_from_rr_db(ctx, message, emoji):
     with open('DataBase.json') as file:
         data = json.load(file)
     if f"{ctx.guild.id}" not in data['servers']:
@@ -58,6 +60,7 @@ class Role_Commands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    # Reaction add listener for role reactions
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
         message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
@@ -79,6 +82,7 @@ class Role_Commands(commands.Cog):
                 await channel.send(embed=embed)
                 return
 
+    # Reaction remove listener for role reactions
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload):
         message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
@@ -100,6 +104,11 @@ class Role_Commands(commands.Cog):
                 await channel.send(embed=embed)
                 return
 
+    # Authors note:
+    # Not sure why you wouldn't use the raw version over the normal one since you can get all the information from the payload anyways
+
+
+    # Setup command for role reactions
     @commands.command(help="Starts the setup for a role reaction message. Start by providing the message id")
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
@@ -147,7 +156,7 @@ class Role_Commands(commands.Cog):
                     raise commands.BadArgument
                 else:
                     await role_message.add_reaction(emoji)
-                    code = add_to_rm_db(ctx, role_message, emoji, role)
+                    code = add_to_rr_db(ctx, role_message, emoji, role)
                     if code == 0:
                         embed = create_embed(f":information_source: Successfully added reaction role", f"Added reaction role to message {role_message.id} with emoji {emoji} for role {role.mention}", color="SUCCESS")
                         await ctx.reply(embed=embed)
@@ -157,6 +166,7 @@ class Role_Commands(commands.Cog):
                     else:
                         raise commands.CommandInvokeError
 
+    # Removal command for role reactions
     @commands.command(help="Starts the removal of a role reaction message. Start by providing the message id")
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
@@ -192,12 +202,13 @@ class Role_Commands(commands.Cog):
             print(f"{ctx.author.name}#{ctx.author.discriminator} provided {user_input}")
             if user_input < 0 or user_input > len(role_message.reactions):
                 raise commands.BadArgument
-            elif remove_from_rm_db(ctx, role_message, emoji):
+            elif remove_from_rr_db(ctx, role_message, emoji):
                 embed = create_embed(f":information_source: Successfully removed reaction role", f"Removed reaction role to message {role_message.id} with emoji {emoji}", color="SUCCESS")
                 await ctx.reply(embed=embed)
             else:
                 raise commands.CommandInvokeError
 
+    # Error handlers
     @rmsetup.error
     async def rmsetup_error(self, ctx, error):
         if isinstance(error, commands.BadArgument):

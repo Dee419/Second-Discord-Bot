@@ -4,6 +4,7 @@ import datetime
 from discord.ext import commands
 from Embed import create_embed
 
+# Adds a moderation entry to the database
 def add_to_moderation_db(ctx, target, reason, type):
     with open('DataBase.json') as file:
         data = json.load(file)
@@ -28,6 +29,7 @@ def add_to_moderation_db(ctx, target, reason, type):
         json.dump(data, file, indent=4)
     return True
 
+# Returns an embed of all the punishments of a user depending on the type
 def list_helper(ctx, target, type: str):
     if target is None:
         target = ctx.author
@@ -166,7 +168,7 @@ class Admin_Commands(commands.Cog):
             await channel.send(embed=embed)
 
     # Set chat log channel command
-    @commands.command(help="Allows the user to purge a given amount of messages")
+    @commands.command(help="Allows the user to set the chat log channel")
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
     async def setchatlogchannel(self, ctx, channel: discord.TextChannel = None):
@@ -174,13 +176,9 @@ class Admin_Commands(commands.Cog):
             channel = ctx.channel
         with open('DataBase.json') as file:
             data = json.load(file)
-        found = False
-        for server in data['servers']:
-            if server['guild_id'] == ctx.guild.id:
-                server['chat_log_channel_id'] = channel.id
-                found = True
-                break
-        if not found:
+        try:
+            data['servers'][f"{ctx.guild.id}"]['chat_log_channel_id'] = channel.id
+        except:
             raise commands.CommandInvokeError("NotFoundInDatabase")
         with open('DataBase.json', 'w') as file:
             json.dump(data, file, indent=4)
@@ -194,12 +192,10 @@ class Admin_Commands(commands.Cog):
     async def addservertodatabase(self, ctx):
         with open('DataBase.json') as file:
             data = json.load(file)
-        for server in data['servers']:
-            # First check if the server is already in the database
-            if server['guild_id'] == ctx.guild.id:
-                embed = create_embed(":warning: Add server to database failed", "Server is already in the database", color="WARNING")
-                await ctx.reply(embed=embed)
-                return
+        if f"{ctx.guild.id}" in data['servers']:
+            embed = create_embed(":warning: Add server to database failed", "Server is already in the database", color="WARNING")
+            await ctx.reply(embed=embed)
+            return
         # If the server is not yet in the database we must add it to the database
         to_add = {
             f"{ctx.guild.id}": {
@@ -213,7 +209,7 @@ class Admin_Commands(commands.Cog):
                 }
             }
         }
-        data['servers'].append(to_add)
+        data['servers'][f"{ctx.guild.id}"] = to_add
         with open('DataBase.json', 'w') as file:
             json.dump(data, file, indent=4)
         embed = create_embed(":white_check_mark: Successfully added the server to the database", f"Added this server to the database. Remember to use `.setchatlogchannel` to set the chat log channel", color="SUCCESS")
