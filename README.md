@@ -40,7 +40,7 @@ This is my second attempt at making a Discord bot in Python.
 1. Moderation commands
    - Kick
      - Allows the user to kick a member
-     - Usage: `.kick Member-Mention/User-ID (Optional)Reason`
+     - Usage: `.kick Member-Mention/Member-ID (Optional)Reason`
      - Example: `.kick 206398035654213633 Toxic Behaviour`
    - Ban
      - Allows the user to ban a user
@@ -49,7 +49,7 @@ This is my second attempt at making a Discord bot in Python.
      - Example: `.ban 206398035654213633 Hate Speech`
    - Warn
      - Allows the user to warn a member
-     - Usage: `.kick Member-Mention/User-ID (Optional)Reason`
+     - Usage: `.kick Member-Mention/Member-ID (Optional)Reason`
      - Example: `.warn 206398035654213633 Suggestive Image`
    - Purge
      - Allows the user to purge a given amount of messages
