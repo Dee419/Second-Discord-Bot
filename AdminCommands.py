@@ -186,7 +186,7 @@ class Admin_Commands(commands.Cog):
         await ctx.reply(embed=embed)
 
     # Add server to database command
-    @commands.command(help="Allows the user to add the server to the database in case the server is not currently in the database")
+    @commands.command(help="Allows the user to add the server to the database in case the server is not currently in the database", aliases=['astdb', 'addservertodb'])
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
     async def addservertodatabase(self, ctx):
@@ -200,7 +200,7 @@ class Admin_Commands(commands.Cog):
         to_add = {
             f"{ctx.guild.id}": {
                 "chat_log_channel_id": 0,
-                "welcome_channel": 0,
+                "welcome_channel_id": 0,
                 "moderation": {
                     
                 },
@@ -215,7 +215,7 @@ class Admin_Commands(commands.Cog):
         embed = create_embed(":white_check_mark: Successfully added the server to the database", f"Added this server to the database. Remember to use `.setchatlogchannel` to set the chat log channel", color="SUCCESS")
         await ctx.reply(embed=embed)
 
-    @commands.command(help="Lists all of the warns of a specific user")
+    @commands.command(help="Lists all of the warns of a specific user", aliases=['listwarnings'])
     @commands.guild_only()
     async def listwarns(self, ctx, target: discord.User=None):
         embed = list_helper(ctx, target, "warn")
