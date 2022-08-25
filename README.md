@@ -21,7 +21,10 @@ This is my second attempt at making a Discord bot in Python.
    ```cmd
    git clone https://github.com/Dee419/Second-Discord-Bot
    ```
-3. Put your bot's token in `token.txt`
+3. Put your bot's token in the first line of `token.txt`
+
+   Example:
+   ![This is an image](README_Images/token_example.png)
 
 4. Run CatBot.py
    - Windows
