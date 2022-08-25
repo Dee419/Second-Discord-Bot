@@ -4,7 +4,7 @@ This is my second attempt at making a Discord bot in Python.
 ### Features
 - Kick, Ban and Warn system
 - Chat logging
-- simple purge command
+- Simple purge command
 - Database written in JSON
 - Several fun commands
 - Role reactions
