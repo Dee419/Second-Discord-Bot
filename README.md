@@ -11,7 +11,7 @@ This is my second attempt at making a Discord bot in Python.
 
 ### Requirements
 - Python 3.8 or Higher
-- Discord.py 1.7.3 or lower (1.7.3 recommended)
+- discord.py 1.7.3 or lower (1.7.3 recommended)
 
 ### Installation
 1. Clone this repository to the desired folder
