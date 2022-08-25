@@ -56,7 +56,7 @@ def remove_from_rr_db(ctx, message, emoji):
     # We didn't find it, we have to let the bot know so that it can raise an error
     return False
 
-class Role_Commands(commands.Cog):
+class RoleCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -232,3 +232,6 @@ class Role_Commands(commands.Cog):
         elif isinstance(error, commands.MissingPermissions):
             embed = create_embed(f":x: Role message remove failed", f"You don't have permission to use this command!", color="ERROR")
             await ctx.reply(embed=embed)
+
+async def setup(bot):
+    await bot.add_cog(RoleCommands(bot))

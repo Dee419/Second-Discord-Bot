@@ -5,7 +5,7 @@ from Embed import create_embed
 from discord.ext import commands
 from random import randint
 
-class Fun_Commands(commands.Cog):
+class FunCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -96,3 +96,6 @@ class Fun_Commands(commands.Cog):
                 await ctx.reply("Purrrr :cat:")
             case 4:
                 await ctx.reply("Purrrrr :cat:")
+
+async def setup(bot):
+    await bot.add_cog(FunCommands(bot))

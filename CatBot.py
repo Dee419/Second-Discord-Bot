@@ -1,27 +1,25 @@
 import discord
+import os
+import asyncio
 import json
 import datetime
 from discord.ext import commands
 from Embed import create_embed
 
-# Import cogs
-from AdminCommands import Admin_Commands
-from FunCommands import Fun_Commands
-from RoleCommands import Role_Commands
-
-print("Setting up intents")
+print("Loading intents")
 intents = discord.Intents.default()
+intents.message_content = True
 intents.members = True
 intents.messages = True
-
-print("Initializing bot and loading cogs")
+print("Initializing bot")
 bot = commands.Bot(command_prefix='.', intents=intents)
-bot.add_cog(Admin_Commands(bot))
-bot.add_cog(Fun_Commands(bot))
-bot.add_cog(Role_Commands(bot))
 non_cached_messages = []
 
-# Used to see when the bot is available
+async def load_extensions():
+    for filename in os.listdir("./cogs"):
+        if filename.endswith(".py"):
+            await bot.load_extension(f"cogs.{filename[:-3]}")
+
 @bot.event
 async def on_ready():
     print("Bot started!")
@@ -136,9 +134,16 @@ async def on_raw_message_edit(payload):
         embed.add_field(name=f"**New message:**", value=f"{after.content}", inline=False)
         non_cached_messages.append(after)
         await chat_log_channel.send(embed = embed)
-    
-print("Starting bot")
-# It's true
+
+print("Loading token")
 with open('token.txt') as file:
     token = file.readline()
-bot.run(token)
+
+print("Starting main()")
+async def main():
+    async with bot:
+        print("Loading extensions")
+        await load_extensions()
+        print("Starting bot")
+        await bot.start(token)
+asyncio.run(main())
