@@ -38,7 +38,7 @@ async def on_guild_join(guild):
     to_add = {
             f"{guild.id}": {
                 "chat_log_channel_id": 0,
-                "welcome_channel": 0,
+                "welcome_channel_id": 0,
                 "moderation": {
                     
                 },

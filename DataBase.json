@@ -2,7 +2,7 @@
     "servers": {
         "987318210904854548": {
             "chat_log_channel_id": 988180984337928212,
-            "welcome_channel": 0,
+            "welcome_channel_id": 0,
             "moderation": {
                 "235098015696814080": {
                     "WARN": [
@@ -36,7 +36,7 @@
         },
         "995790724937285652": {
             "chat_log_channel_id": 1001257643266015322,
-            "welcome_channel": 0,
+            "welcome_channel_id": 0,
             "moderation": {
                 "582712622634369065": {
                     "WARN": [
@@ -60,7 +60,7 @@
         },
         "582339394271313931": {
             "chat_log_channel_id": 0,
-            "welcome_channel": 0,
+            "welcome_channel_id": 0,
             "moderation": [],
             "role_messages": []
         }
