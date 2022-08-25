@@ -18,7 +18,7 @@ This is my second attempt at making a Discord bot in Python.
    - Ban
      - Allows the user to ban a user
      - The user in question does not need to be on the serve
-     - Usage: `.ban User-Mention/User-ID (Optional)Reason`
+     - Usage: `.ban Member-Mention/User-ID (Optional)Reason`
      - Example: `.ban 206398035654213633 Hate Speech`
    - Warn
      - Allows the user to warn a member
