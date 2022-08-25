@@ -9,6 +9,32 @@ This is my second attempt at making a Discord bot in Python.
 - Several fun commands
 - Role reactions
 
+### Requirements
+- Python 3.8 or Higher
+- Discord.py 1.7.3 or lower (1.7.3 recommended)
+
+### Installation
+1. Clone this repository to the desired folder
+   - Windows terminal
+   ```cmd
+   git clone https://github.com/Dee419/Second-Discord-Bot
+   ```
+   - Linux terminal
+   ```bash
+   $ git clone https://github.com/Dee419/Second-Discord-Bot
+   ```
+2. Put your bot's token in `token.txt`
+
+3. Run CatBot.py
+   - Windows terminal
+   ```cmd
+   python CatBot.py
+   ```
+   - Linux terminal
+   ```bash
+   $ python3 CatBot.py
+   ```
+
 ### Commands:
 1. Moderation commands
    - Kick
