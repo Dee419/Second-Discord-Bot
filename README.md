@@ -57,7 +57,7 @@ This is my second attempt at making a Discord bot in Python.
    - Misery
      - *Every single person is my enemy~*
      - Usage: `.misery`
-   - pet
+   - Pet
      - Pets CatBot :)
      - Usage: `.pet`
    - Rock Paper Scissors
