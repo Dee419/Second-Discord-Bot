@@ -23,8 +23,21 @@ def add_to_moderation_db(ctx, target, reason, type):
     try:
         data['servers'][f"{ctx.guild.id}"]['moderation'][f"{target.id}"][f"{type}"].append(action_entry)
     except:
-        # All hope is lost
-        return False
+        try:
+            # Try and add the type with the entry in there
+            data['servers'][f"{ctx.guild.id}"]['moderation'][f"{target.id}"][f"{type}"] = [action_entry]
+        except:
+            # It could be that the user is not in the database yet
+            try:
+                user_entry = {
+                    f"{type}": [
+                        action_entry
+                    ]
+                }
+                data['servers'][f"{ctx.guild.id}"]['moderation'][f"{target.id}"] = user_entry
+            except:
+                # All hope is lost
+                return False
     with open('DataBase.json', 'w') as file:
         json.dump(data, file, indent=4)
     return True
@@ -104,21 +117,21 @@ class AdminCommands(commands.Cog):
             if not add_to_moderation_db(ctx, target, reason, "BAN"):
                 raise commands.CommandInvokeError("NotFoundInDatabase")
             try:
-                await target.ban(reason=reason)
+                await ctx.guild.ban(target, reason=reason)
             except:
                 try:
-                    await ctx.guild.ban(target, reason=reason)
+                    await ctx.guild.ban(target.id, reason=reason)
                 except:
-                    try:
-                        await ctx.guild.ban(target.id, reason=reason)
-                    except:
-                        raise commands.UserNotFound
+                    raise commands.UserNotFound
             embed = create_embed(f":white_check_mark: Ban successfull", f"{target.name}#{target.discriminator} has been banned for {reason}!", time=True, color="SUCCESS")
             await ctx.reply(embed=embed)
 
             embed = create_embed(f":warning: You have been banned!", f"You have been banned from **{ctx.guild.name}** for {reason}!", color="ERROR")
             channel = await target.create_dm()
-            await channel.send(embed=embed)
+            try:
+                await channel.send(embed=embed)
+            except:
+                return
 
     # Purge command
     @commands.command(help="Allows the user to purge a given amount of messages")
