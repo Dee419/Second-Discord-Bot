@@ -1,5 +1,2 @@
-MTAwNjQzNzYzMTcyNDM1OTczMA.Gc7vU5.6WBeZeJwGJBfNMuBjKEqAtD6OV32SzF4UYE3qg
-^ Test CatBot
-
-OTg3MzE4NTkwMTkxNTgzMzAy.GmC2Kq.7bdFq5L1JZq-vUSd6EePT2m8F7pKR1AMhVSMY0
-^ CatBot
+PUT YOUR TOKEN ON THIS LINE
+You can put comments on this line if you wish
