@@ -26,6 +26,7 @@ async def on_ready():
     with open('DataBase.json') as file:
         data = json.load(file)
     for guild in bot.guilds:
+        print(f"Checking bans for {guild.name}")
         if str(guild.id) in data['servers']:
             async for entry in guild.bans():
                 if str(entry.user.id) in data['servers'][f"{guild.id}"]['moderation']:
