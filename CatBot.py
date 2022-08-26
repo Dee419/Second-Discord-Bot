@@ -143,24 +143,83 @@ async def on_member_ban(guild, user):
 async def on_guild_join(guild):
     with open('DataBase.json') as file:
         data = json.load(file)
+    already = False
     for server in data['servers']:
         # First check if the server is already in the database
-        if server['guild_id'] == guild.id:
-            return
-    # If the server is not yet in the database we must add it to the database
-    to_add = {
-            f"{guild.id}": {
-                "chat_log_channel_id": 0,
-                "welcome_channel_id": 0,
-                "moderation": {
-                    
-                },
-                "role_messages": {
-                    
-                }
-            }
+        if server == str(guild.id):
+            already = True
+    if not already:
+        # If the server is not yet in the database we must add it to the database
+        to_add = {
+            "chat_log_channel_id": 0,
+            "welcome_channel_id": 0,
+            "moderation": {},
+            "role_messages": {}
         }
-    data['servers'].append(to_add)
+        data['servers'][f"{guild.id}"] = to_add
+    print(f"Adding missing bans for {guild.name}")
+    added_bans = 0
+    async for entry in guild.bans():
+        if str(entry.user.id) in data['servers'][f"{guild.id}"]['moderation']:
+            # The user is on the server and has been punished before (according to the database), let's check if all of their bans are on the database
+            try:
+                for db_entry in data['servers'][f"{guild.id}"]['moderation'][f"{entry.user.id}"]['BAN']:
+                    if entry.reason == db_entry['reason']:
+                        found = True
+                        break
+            except:
+                found = False
+            if not found:
+                time = (datetime.datetime.now()).strftime("%H:%M:%S")
+                today = (datetime.date.today()).strftime("%d/%m/%Y")
+                id = data['last_id'] + 1
+                data['last_id'] = id
+                action_entry = {
+                    "id": id,
+                    "reason": f"{entry.reason}",
+                    "date": f"{today}",
+                    "time": f"{time}"
+                }
+                try:
+                    data['servers'][f"{guild.id}"]['moderation'][f"{entry.user.id}"]['BAN'].append(action_entry)
+                    added_bans += 1
+                except:
+                    # This should never fail, but we'll try it anyways just to be sure
+                    try:
+                        data['servers'][f"{guild.id}"]['moderation'][f"{entry.user.id}"]['BAN'] = [action_entry]
+                        added_bans += 1
+                    except:
+                        print(f"Failed to add ban for {entry.user.name}#{entry.user.discriminator}")
+        else:
+            found = False
+            # The user is on the server and has been punished before but they're not in the database
+            time = (datetime.datetime.now()).strftime("%H:%M:%S")
+            today = (datetime.date.today()).strftime("%d/%m/%Y")
+            # print(f"TIME: {time}\nDATE: {today}")
+            id = data['last_id'] + 1
+            data['last_id'] = id
+            action_entry = {
+                "id": id,
+                "reason": f"{entry.reason}",
+                "date": f"{today}",
+                "time": f"{time}"
+            }
+            # Try to add to the user's punishments
+            user_entry = {
+                f"{'BAN'}": [
+                    action_entry
+                ]
+            }
+            try:
+                # This should never fail, but we'll try it anyways just to be sure
+                data['servers'][f"{guild.id}"]['moderation'][f"{entry.user.id}"] = user_entry
+                added_bans += 1
+            except:
+                print(f"Failed to add ban for {entry.user.name}#{entry.user.discriminator}")
+    if added_bans > 0:
+        print(f"Added {added_bans} missing bans for {guild.name}")
+    else:
+        print(f"There we no missing bans on {guild.name}")
     with open('DataBase.json', 'w') as file:
         json.dump(data, file, indent=4)
 
