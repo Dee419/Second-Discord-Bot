@@ -23,6 +23,104 @@ async def load_extensions():
 @bot.event
 async def on_ready():
     print("Bot started!")
+    with open('DataBase.json') as file:
+        data = json.load(file)
+    for guild in bot.guilds:
+        if str(guild.id) in data['servers']:
+            async for entry in guild.bans():
+                if str(entry.user.id) in data['servers'][f"{guild.id}"]['moderation']:
+                    # The user is on the server and has been punished before (according to the database), let's check if all of their bans are on the database
+                    try:
+                        for db_entry in data['servers'][f"{guild.id}"]['moderation'][f"{entry.user.id}"]['BAN']:
+                            if entry.reason == db_entry['reason']:
+                                found = True
+                                break
+                    except:
+                        found = False
+                    if not found:
+                        time = (datetime.datetime.now()).strftime("%H:%M:%S")
+                        today = (datetime.date.today()).strftime("%d/%m/%Y")
+                        id = data['last_id'] + 1
+                        data['last_id'] = id
+                        action_entry = {
+                            "id": id,
+                            "reason": f"{entry.reason}",
+                            "date": f"{today}",
+                            "time": f"{time}"
+                        }
+                        try:
+                            data['servers'][f"{guild.id}"]['moderation'][f"{entry.user.id}"]['BAN'].append(action_entry)
+                        except:
+                            data['servers'][f"{guild.id}"]['moderation'][f"{entry.user.id}"]['BAN'] = [action_entry]
+                else:
+                    found = False
+                    # The user is on the server and has been punished before but they're not in the database
+                    time = (datetime.datetime.now()).strftime("%H:%M:%S")
+                    today = (datetime.date.today()).strftime("%d/%m/%Y")
+                    id = data['last_id'] + 1
+                    data['last_id'] = id
+                    action_entry = {
+                        "id": id,
+                        "reason": f"{entry.reason}",
+                        "date": f"{today}",
+                        "time": f"{time}"
+                    }
+                    # Try to add to the user's punishments
+                    user_entry = {
+                        f"{'BAN'}": [
+                            action_entry
+                        ]
+                    }
+                    data['servers'][f"{guild.id}"]['moderation'][f"{entry.user.id}"] = user_entry
+                if not found:
+                    with open('DataBase.json', 'w') as file:
+                        json.dump(data, file, indent=4)
+                    print(f"Added a ban for {entry.user.name}#{entry.user.discriminator} to the database")
+
+@bot.event
+async def on_member_ban(guild, user):
+    time = datetime.datetime.now()
+    today = datetime.date.today()
+    found = False
+    with open('DataBase.json') as file:
+        data = json.load(file)
+    try:
+        ban_entries = data['servers'][f"{guild.id}"]['moderation'][f"{user.id}"]['BAN']
+    except:
+        ban_entries = []
+    for entry in ban_entries:
+        if entry['date'] == today and (time - datetime.timedelta(seconds=5) < entry['time']):
+            found = True
+            break
+    if not found:
+        id = data['last_id'] + 1
+        data['last_id'] = id
+        time = time.strftime("%H:%M:%S")
+        today = today.strftime("%d/%m/%Y")
+        action_entry = {
+            "id": id,
+            "reason": f"No reason found",
+            "date": f"{today}",
+            "time": f"{time}"
+        }
+        # Try to add to the user's punishments
+        try:
+            data['servers'][f"{guild.id}"]['moderation'][f"{user.id}"]['BAN'].append(action_entry)
+        except:
+            try:
+                # Try and add the type with the entry in there
+                data['servers'][f"{guild.id}"]['moderation'][f"{user.id}"]['BAN'] = [action_entry]
+            except:
+                # It could be that the user is not in the database yet
+                user_entry = {
+                    'BAN': [
+                        action_entry
+                    ]
+                }
+                data['servers'][f"{guild.id}"]['moderation'][f"{user.id}"] = user_entry
+        with open('DataBase.json', 'w') as file:
+            json.dump(data, file, indent=4)
+        print(f"Added a ban for {entry.user.name}#{entry.user.discriminator} to the database")
 
 @bot.event
 async def on_guild_join(guild):

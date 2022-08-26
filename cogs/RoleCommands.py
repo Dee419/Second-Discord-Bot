@@ -100,7 +100,7 @@ class RoleCommands(commands.Cog):
             if role_reaction['emoji'] == str(emoji) and not member.bot:
                 role = guild.get_role(role_reaction['role_id'])
                 await member.remove_roles(role)
-                embed = create_embed(f":white_check_mark: You have a new role!", f"You received the role named **{role.name}** on __{guild.name}__", color="SUCCESS")
+                embed = create_embed(f":white_check_mark: You lost a role!", f"You lost the role named **{role.name}** on __{guild.name}__", color="ERROR")
                 channel = await member.create_dm()
                 await channel.send(embed=embed)
                 return

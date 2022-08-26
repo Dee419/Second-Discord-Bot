@@ -58,10 +58,6 @@ This is my second attempt at making a Discord bot in Python.
      - Example: `.purge 10 206398035654213633`
 2. Admin commands
    - Requires `Administrator` perms for the command user
-   - Add server to database
-     - Allows the user to add the server to the database in case the server is not currently in the database
-     - Aliases: `.astdb`, `.addservertodb`
-     - Usage: `.addservertodatabase`
    - Set chat log channel
      - Allows the user to set the log channel
      - The log channel logs all deleted and edited messages and also logs members entering and leaving the server

@@ -19,6 +19,16 @@
                             "time": "14:42:15"
                         }
                     ]
+                },
+                "582712622634369065": {
+                    "BAN": [
+                        {
+                            "id": 10,
+                            "reason": "no reason given",
+                            "date": "26/08/2022",
+                            "time": "21:10:16"
+                        }
+                    ]
                 }
             },
             "role_messages": {
@@ -65,5 +75,5 @@
             "role_messages": []
         }
     },
-    "last_id": 2
+    "last_id": 15
 }
