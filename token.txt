@@ -1,2 +1,2 @@
-PUT YOUR TOKEN ON THIS LINE
+PUT YOUR TOKEN IN THIS LINE
 You can put comments on this line or any other line if you wish
