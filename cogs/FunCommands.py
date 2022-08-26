@@ -8,6 +8,7 @@ from random import randint
 class FunCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.__cog_name__ = "Fun Commands"
 
     @commands.command(help="Allows the user to play Rock Paper Scissors against the bot")
     async def rps(self, ctx):

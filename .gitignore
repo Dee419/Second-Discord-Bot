@@ -161,3 +161,4 @@ cython_debug/
 
 # Discord bot token (in token.txt)
 token.txt
+/.VSCodeCounter

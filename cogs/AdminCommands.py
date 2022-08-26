@@ -51,6 +51,7 @@ def list_helper(ctx, target, type: str):
 class AdminCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.__cog_name__ = "Admin Commands"
 
     # Kick command
     @commands.command(help="Allows the user to kick a member")
@@ -167,8 +168,8 @@ class AdminCommands(commands.Cog):
             channel = await target.create_dm()
             await channel.send(embed=embed)
 
-    # Set chat log channel command
-    @commands.command(help="Allows the user to set the chat log channel", aliases=['sclc', 'setclc'])
+    # Set log channel command
+    @commands.command(help="Allows the user to set the log channel. The log channel logs all deleted and edited messages and also logs members entering and leaving the server", aliases=['sclc', 'setclc'])
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
     async def setchatlogchannel(self, ctx, channel: discord.TextChannel = None):

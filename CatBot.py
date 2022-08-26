@@ -12,7 +12,7 @@ intents.message_content = True
 intents.members = True
 intents.messages = True
 print("Initializing bot")
-bot = commands.Bot(command_prefix='.', intents=intents)
+bot = commands.Bot(command_prefix='.', intents=intents, case_insensitive=True)
 non_cached_messages = []
 
 async def load_extensions():
@@ -52,11 +52,12 @@ async def on_guild_join(guild):
 @bot.event
 async def on_raw_message_delete(payload):
     message = payload.cached_message
+    guild_id = payload.guild_id
     chat_log_channel_id = None
     with open('DataBase.json') as file:
         data = json.load(file)
     try:
-        chat_log_channel_id = data['servers'][f"{message.guild.id}"]['chat_log_channel_id']
+        chat_log_channel_id = data['servers'][f"{guild_id}"]['chat_log_channel_id']
     except:
         pass
     if message is not None and chat_log_channel_id is not None and chat_log_channel_id != 0:
@@ -94,7 +95,8 @@ async def on_raw_message_edit(payload):
     with open('DataBase.json') as file:
         data = json.load(file)
     message = payload.cached_message
-    chat_log_channel_id = data['servers'][f"{message.guild.id}"]['chat_log_channel_id']
+    guild_id = payload.guild_id
+    chat_log_channel_id = data['servers'][f"{guild_id}"]['chat_log_channel_id']
     if message is None:
         # We will try and retrieve the message from non_cached_messages
         for non_cached_message in non_cached_messages:
@@ -134,6 +136,32 @@ async def on_raw_message_edit(payload):
         embed.add_field(name=f"**New message:**", value=f"{after.content}", inline=False)
         non_cached_messages.append(after)
         await chat_log_channel.send(embed = embed)
+
+@bot.event
+async def on_member_join(member):
+    with open('DataBase.json') as file:
+        data = json.load(file)
+    chat_log_channel_id = data['servers'][f"{member.guild.id}"]['chat_log_channel_id']
+    if chat_log_channel_id is not None and chat_log_channel_id != 0:
+        # We have the chat log channel
+        chat_log_channel = bot.get_channel(chat_log_channel_id)
+        time = (datetime.datetime.now()).strftime("%H:%M:%S")
+        today = (datetime.date.today()).strftime("%d/%m/%Y")
+        embed = create_embed(f"{member.name}#{member.discriminator} has joined the server", f"{member.name}#{member.discriminator} ({member.id}) has joined the server", f"{today} - {time} CET", color="SUCCESS")
+        await chat_log_channel.send(embed=embed)
+
+@bot.event
+async def on_member_remove(member):
+    with open('DataBase.json') as file:
+        data = json.load(file)
+    chat_log_channel_id = data['servers'][f"{member.guild.id}"]['chat_log_channel_id']
+    if chat_log_channel_id is not None and chat_log_channel_id != 0:
+        # We have the chat log channel
+        chat_log_channel = bot.get_channel(chat_log_channel_id)
+        time = (datetime.datetime.now()).strftime("%H:%M:%S")
+        today = (datetime.date.today()).strftime("%d/%m/%Y")
+        embed = create_embed(f"{member.name}#{member.discriminator} has left the server", f"{member.name}#{member.discriminator} ({member.id}) has left the server", f"{today} - {time} CET", color="ERROR")
+        await chat_log_channel.send(embed=embed)
 
 print("Loading token")
 with open('token.txt') as file:

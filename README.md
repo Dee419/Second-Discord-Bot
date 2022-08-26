@@ -3,7 +3,7 @@ This is my second attempt at making a Discord bot in Python.
 
 ### Features
 - Kick, ban and warn system
-- Chat logging
+- Logging system
 - Simple purge command
 - Database written in JSON
 - Several fun commands
@@ -63,7 +63,8 @@ This is my second attempt at making a Discord bot in Python.
      - Aliases: `.astdb`, `.addservertodb`
      - Usage: `.addservertodatabase`
    - Set chat log channel
-     - Allows the user to set the chat log channel
+     - Allows the user to set the log channel
+     - The log channel logs all deleted and edited messages and also logs members entering and leaving the server
      - Either provide the channel or use in the intended channel
      - Aliases: `.sclc`, `.setclc`
      - Usage: `.setchatlogchannel (Optional)Channel_ID`

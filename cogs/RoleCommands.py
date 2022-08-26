@@ -59,6 +59,7 @@ def remove_from_rr_db(ctx, message, emoji):
 class RoleCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.__cog_name__ = "Role Reaction Commands"
 
     # Reaction add listener for role reactions
     @commands.Cog.listener()
