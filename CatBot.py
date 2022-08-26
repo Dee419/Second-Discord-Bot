@@ -28,6 +28,7 @@ async def on_ready():
     for guild in bot.guilds:
         print(f"Checking bans for {guild.name}")
         if str(guild.id) in data['servers']:
+            added_bans = 0
             async for entry in guild.bans():
                 if str(entry.user.id) in data['servers'][f"{guild.id}"]['moderation']:
                     # The user is on the server and has been punished before (according to the database), let's check if all of their bans are on the database
@@ -51,13 +52,20 @@ async def on_ready():
                         }
                         try:
                             data['servers'][f"{guild.id}"]['moderation'][f"{entry.user.id}"]['BAN'].append(action_entry)
+                            added_bans += 1
                         except:
-                            data['servers'][f"{guild.id}"]['moderation'][f"{entry.user.id}"]['BAN'] = [action_entry]
+                            # This should never fail, but we'll try it anyways just to be sure
+                            try:
+                                data['servers'][f"{guild.id}"]['moderation'][f"{entry.user.id}"]['BAN'] = [action_entry]
+                                added_bans += 1
+                            except:
+                                print(f"Failed to add ban for {entry.user.name}#{entry.user.discriminator}")
                 else:
                     found = False
                     # The user is on the server and has been punished before but they're not in the database
                     time = (datetime.datetime.now()).strftime("%H:%M:%S")
                     today = (datetime.date.today()).strftime("%d/%m/%Y")
+                    # print(f"TIME: {time}\nDATE: {today}")
                     id = data['last_id'] + 1
                     data['last_id'] = id
                     action_entry = {
@@ -72,11 +80,19 @@ async def on_ready():
                             action_entry
                         ]
                     }
-                    data['servers'][f"{guild.id}"]['moderation'][f"{entry.user.id}"] = user_entry
-                if not found:
-                    with open('DataBase.json', 'w') as file:
-                        json.dump(data, file, indent=4)
-                    print(f"Added a ban for {entry.user.name}#{entry.user.discriminator} to the database")
+                    try:
+                        # This should never fail, but we'll try it anyways just to be sure
+                        data['servers'][f"{guild.id}"]['moderation'][f"{entry.user.id}"] = user_entry
+                        added_bans += 1
+                    except:
+                        print(f"Failed to add ban for {entry.user.name}#{entry.user.discriminator}")
+            if not found:
+                with open('DataBase.json', 'w') as file:
+                    json.dump(data, file, indent=4)
+            if added_bans > 0:
+                print(f"Added {added_bans} missing bans for {guild.name}")
+            else:
+                print(f"There we no missing bans on {guild.name}")
 
 @bot.event
 async def on_member_ban(guild, user):
