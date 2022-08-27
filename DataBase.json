@@ -1,4 +1,23 @@
 {
-    "servers": {},
+    "servers": {
+        "987318210904854548": {
+            "chat_log_channel_id": 988180984337928212,
+            "welcome_channel_id": 0,
+            "moderation": {},
+            "role_messages": {}
+        },
+        "995790724937285652": {
+            "chat_log_channel_id": 1001257643266015322,
+            "welcome_channel_id": 0,
+            "moderation": {},
+            "role_messages": {}
+        },
+        "582339394271313931": {
+            "chat_log_channel_id": 0,
+            "welcome_channel_id": 0,
+            "moderation": {},
+            "role_messages": {}
+        }
+    },
     "last_id": 0
 }
