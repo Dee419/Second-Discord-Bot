@@ -51,3 +51,7 @@ if server_count > 0:
     print(f"Converted the database for {server_count} servers")
 else:
     print(f"There is nothing to convert, please invite the bot to a server")
+
+input = input("Delete DataBase.json?\n")
+if input.lower() in ('y', 'ye', 'yes', 'yay'):
+    os.remove('DataBase.json')
