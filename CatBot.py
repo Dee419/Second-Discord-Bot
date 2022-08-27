@@ -25,7 +25,7 @@ async def load_extensions():
 async def on_ready():
     print("Bot started!")
     for guild in bot.guilds:
-        print(f"Checking bans for {guild.name}")
+        print(f"Checking missing bans for {guild.name}")
         if os.path.exists(f"./Database/{guild.id}"):
             with open(f"./Database/{guild.id}/moderation.json") as file:
                 moderation_data = json.load(file)
@@ -167,7 +167,7 @@ async def on_guild_join(guild):
     # Now add missing bans to the database
     with open(f"./Database/{guild.id}/moderation.json") as file:
         moderation_data = json.load(file)
-    print(f"Checking bans for {guild.name}")
+    print(f"Checking missing bans for {guild.name}")
     added_bans = 0
     async for entry in guild.bans():
         if str(entry.user.id) in moderation_data:
