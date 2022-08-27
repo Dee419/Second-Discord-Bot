@@ -164,3 +164,6 @@ token.txt
 
 # VSCodeCounter plugin for Visual Studio Code
 /.VSCodeCounter
+
+# Ignore old DataBase.json
+DataBase.json
