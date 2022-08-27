@@ -21,8 +21,12 @@ def add_to_rr_db(ctx, message, emoji, role):
         data['servers'][f"{ctx.guild.id}"]['role_messages'][f"{message.id}"]['role_id'] = role.id
         already = True
     except:
-        data['servers'][f"{ctx.guild.id}"]['role_messages'][f"{message.id}"].append(rm_entry)
-        already = False
+        try:
+            data['servers'][f"{ctx.guild.id}"]['role_messages'][f"{message.id}"].append(rm_entry)
+            already = False
+        except:
+            data['servers'][f"{ctx.guild.id}"]['role_messages'][f"{message.id}"] = [rm_entry]
+            already = False
     with open('DataBase.json', 'w') as file:
         json.dump(data, file, indent=4)
     if already:
