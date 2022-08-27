@@ -61,6 +61,30 @@ def list_helper(ctx, target, type: str):
         embed = create_embed(f"No {type}s found", f"No {type}s found for {target.name}#{target.discriminator}")
         return embed
 
+# Returns an embed of all the punishments of a given type on a server
+async def all_list_helper(ctx, type: str, bot):
+    with open('DataBase.json') as file:
+        data = json.load(file)
+    try:
+        member_entries = data['servers'][f"{ctx.guild.id}"]['moderation']
+    except:
+        member_entries = {}
+    embed = create_embed(f"All {type}s on this server", "")
+    found = False
+    for member_entry in member_entries:
+        try:
+            entries = data['servers'][f"{ctx.guild.id}"]['moderation'][f"{member_entry}"][f"{type.upper()}"]
+        except:
+            entries = {}
+        for entry in entries:
+            target = await bot.fetch_user(int(member_entry))
+            embed.add_field(name=f"{type.capitalize()} for {target.name}#{target.discriminator}", value=f"\n**ID**: {entry['id']}\n**Reason**: {entry['reason']}\n**Date**: {entry['date']}\n**Time**: {entry['time']} CET\n", inline=False)
+            found = True
+    if not found:
+        embed = create_embed(f"No {type}s found on this server", f"No {type}s found on this server. Wow, good job!")
+        return embed
+    return embed
+
 class AdminCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -201,21 +225,60 @@ class AdminCommands(commands.Cog):
 
     @commands.command(help="Lists all of the warns of a specific user", aliases=['listwarnings'])
     @commands.guild_only()
-    async def listwarns(self, ctx, target: discord.User=None):
-        embed = list_helper(ctx, target, "warn")
-        await ctx.reply(embed=embed)
+    async def listwarns(self, ctx, target=None):
+        if target is not None and target != 'all':
+            target = await self.bot.fetch_user(int(target))
+            if target is None:
+                raise commands.BadArgument
+            embed = list_helper(ctx, target, "warn")
+            await ctx.reply(embed=embed)
+        elif target == 'all':
+            if ctx.author.guild_permissions.administrator:
+                embed = await all_list_helper(ctx, "warn", self.bot)
+                await ctx.reply(embed=embed)
+            else:
+                raise commands.MissingPermissions
+        else:
+            embed = list_helper(ctx, ctx.author, "warn")
+            await ctx.reply(embed=embed)
     
     @commands.command(help="Lists all of the kicks of a specific user")
     @commands.guild_only()
-    async def listkicks(self, ctx, target: discord.User=None):
-        embed = list_helper(ctx, target, "kick")
-        await ctx.reply(embed=embed)
+    async def listkicks(self, ctx, target=None):
+        if target is not None and target != 'all':
+            target = await self.bot.fetch_user(int(target))
+            if target is None:
+                raise commands.BadArgument
+            embed = list_helper(ctx, target, "kick")
+            await ctx.reply(embed=embed)
+        elif target == 'all':
+            if ctx.author.guild_permissions.administrator:
+                embed = await all_list_helper(ctx, "kick", self.bot)
+                await ctx.reply(embed=embed)
+            else:
+                raise commands.MissingPermissions
+        else:
+            embed = list_helper(ctx, ctx.author, "kick")
+            await ctx.reply(embed=embed)
 
     @commands.command(help="Lists all of the bans of a specific user")
     @commands.guild_only()
-    async def listbans(self, ctx, target: discord.User=None):
-        embed = list_helper(ctx, target, "ban")
-        await ctx.reply(embed=embed)
+    async def listbans(self, ctx, target=None):
+        if target is not None and target != 'all':
+            target = await self.bot.fetch_user(int(target))
+            if target is None:
+                raise commands.BadArgument
+            embed = list_helper(ctx, target, "ban")
+            await ctx.reply(embed=embed)
+        elif target == 'all':
+            if ctx.author.guild_permissions.administrator:
+                embed = await all_list_helper(ctx, "ban", self.bot)
+                await ctx.reply(embed=embed)
+            else:
+                raise commands.MissingPermissions
+        else:
+            embed = list_helper(ctx, ctx.author, "ban")
+            await ctx.reply(embed=embed)
 
     # Error handlers
     @kick.error
@@ -279,20 +342,38 @@ class AdminCommands(commands.Cog):
             await ctx.reply(embed=embed)
 
     @listwarns.error
-    async def listpunishments_error(self, ctx, error):
-        if isinstance(error, commands.CommandInvokeError):
+    async def listwarns_error(self, ctx, error):
+        if isinstance(error, commands.BadArgument):
+            embed = create_embed(f":x: List punishments failed", f"Given target is not a valid member", color="ERROR")
+            await ctx.reply(embed=embed)
+        elif isinstance(error, commands.MissingPermissions):
+            embed = create_embed(f":x: List punishments failed", f"You do not have the permission to list all warns", color="ERROR")
+            await ctx.reply(embed=embed)
+        elif isinstance(error, commands.CommandInvokeError):
             embed = create_embed(f":x: List punishments failed", f"Something went wrong, please contact my developer", color="ERROR")
             await ctx.reply(embed=embed)
 
     @listkicks.error
-    async def listpunishments_error(self, ctx, error):
-        if isinstance(error, commands.CommandInvokeError):
+    async def listkicks_error(self, ctx, error):
+        if isinstance(error, commands.BadArgument):
+            embed = create_embed(f":x: List punishments failed", f"Given target is not a valid member", color="ERROR")
+            await ctx.reply(embed=embed)
+        elif isinstance(error, commands.MissingPermissions):
+            embed = create_embed(f":x: List punishments failed", f"You do not have the permission to list all warns", color="ERROR")
+            await ctx.reply(embed=embed)
+        elif isinstance(error, commands.CommandInvokeError):
             embed = create_embed(f":x: List punishments failed", f"Something went wrong, please contact my developer", color="ERROR")
             await ctx.reply(embed=embed)
 
     @listbans.error
-    async def listpunishments_error(self, ctx, error):
-        if isinstance(error, commands.CommandInvokeError):
+    async def listbans_error(self, ctx, error):
+        if isinstance(error, commands.BadArgument):
+            embed = create_embed(f":x: List punishments failed", f"Given target is not a valid member", color="ERROR")
+            await ctx.reply(embed=embed)
+        elif isinstance(error, commands.MissingPermissions):
+            embed = create_embed(f":x: List punishments failed", f"You do not have the permission to list all warns", color="ERROR")
+            await ctx.reply(embed=embed)
+        elif isinstance(error, commands.CommandInvokeError):
             embed = create_embed(f":x: List punishments failed", f"Something went wrong, please contact my developer", color="ERROR")
             await ctx.reply(embed=embed)
 

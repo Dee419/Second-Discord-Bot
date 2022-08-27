@@ -3,8 +3,8 @@ This is my second attempt at making a Discord bot in Python.
 
 ### Features
 - Kick, ban and warn system
+- Automatic database management
 - Logging system
-- Simple purge command
 - Database written in JSON
 - Several fun commands
 - Role reactions
@@ -37,7 +37,26 @@ This is my second attempt at making a Discord bot in Python.
      ```
 
 ### Commands:
-1. Moderation commands
+1. General Commands
+   - List Kicks
+     - Lists all of the kicks of a specific user
+     - If you have `administrator` perms then you can do `.listkicks all` to show all the kicks on the server
+     - Be warned! In case the server has many kick entries it could flood the channel
+     - Usage `.listkicks (Optional)Member-Mention/User-Id/'all'`
+     - Examples: `.listkicks`, `.listkicks 206398035654213633`, `.listkicks all`
+   - List Bans
+     - Lists all of the bans of a specific user
+     - If you have `administrator` perms then you can do `.listbans all` to show all the bans on the server
+     - Be warned! In case the server has many ban entries it could flood the channel
+     - Usage `.listbans (Optional)Member-Mention/User-Id/'all'`
+     - Examples: `.listbans`, `.listbans 206398035654213633`, `.listbans all`
+   - List Warns
+     - Lists all of the warns of a specific user
+     - If you have `administrator` perms then you can do `.listwarns all` to show all the warns on the server
+     - Be warned! In case the server has many warn entries it could flood the channel
+     - Usage `.listwarns (Optional)Member-Mention/User-Id/'all'`
+     - Examples: `.listwarns`, `.listwarns 206398035654213633`, `.listwarns all`
+2. Moderation commands
    - Kick
      - Allows the user to kick a member
      - Usage: `.kick Member-Mention/Member-ID (Optional)Reason`
@@ -54,9 +73,9 @@ This is my second attempt at making a Discord bot in Python.
    - Purge
      - Allows the user to purge a given amount of messages
      - You can also choose whose messages are to be purged
-     - Usage: `.purge Amount-Of-Messages User-ID`
+     - Usage: `.purge Amount-Of-Messages (Optional)User-ID`
      - Example: `.purge 10 206398035654213633`
-2. Admin commands
+3. Admin commands
    - Requires `Administrator` perms for the command user
    - Set chat log channel
      - Allows the user to set the log channel
@@ -65,7 +84,7 @@ This is my second attempt at making a Discord bot in Python.
      - Aliases: `.sclc`, `.setclc`
      - Usage: `.setchatlogchannel (Optional)Channel_ID`
      - Examples: `.setchatlogchannel 988180984337928212`, `.setchatlogchannel`
-3. Role Reactions
+4. Role Reactions
    - Requires `Administrator` perms for the command user and `Manage Role` perms for the bot
    - Setup for **adding** a role reaction
      - Starts the setup for **adding** a role reaction message.
@@ -77,7 +96,7 @@ This is my second attempt at making a Discord bot in Python.
      - Start by providing the message id
      - Usage: `.rmremove Message-ID`
      - Example: `.rmremove 1012346042072703037`
-4. Fun Commands
+5. Fun Commands
    - Cat
      - Allows the user to get a random cat image
      - Usage: `.cat`
