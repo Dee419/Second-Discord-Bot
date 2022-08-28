@@ -1,15 +1,16 @@
 import discord
 import json
 import asyncio
+import os
 from discord.ext import commands
 from discord.utils import get
 from Embed import create_embed
 
 # Adds a role reaction to the database
 def add_to_rr_db(ctx, message, emoji, role):
-    with open('DataBase.json') as file:
-        data = json.load(file)
-    if f"{ctx.guild.id}" not in data['servers']:
+    with open(f"./Database/{ctx.guild.id}/moderation.json") as file:
+        role_messages_data = json.load(file)
+    if not os.path.exists(f"./Database/{ctx.guild.id}"):
         # If the server is not yet in the database we return None so the bot can know
         return None
 
@@ -18,17 +19,17 @@ def add_to_rr_db(ctx, message, emoji, role):
         "role_id": role.id
     }
     try:
-        data['servers'][f"{ctx.guild.id}"]['role_messages'][f"{message.id}"]['role_id'] = role.id
+        role_messages_data[f"{message.id}"]['role_id'] = role.id
         already = True
     except:
         try:
-            data['servers'][f"{ctx.guild.id}"]['role_messages'][f"{message.id}"].append(rm_entry)
+            role_messages_data[f"{message.id}"].append(rm_entry)
             already = False
         except:
-            data['servers'][f"{ctx.guild.id}"]['role_messages'][f"{message.id}"] = [rm_entry]
+            role_messages_data[f"{message.id}"] = [rm_entry]
             already = False
-    with open('DataBase.json', 'w') as file:
-        json.dump(data, file, indent=4)
+    with open(f"./Database/{ctx.guild.id}/moderation.json", 'w') as file:
+        json.dump(role_messages_data, file, indent=4)
     if already:
         # If it was already in there we must return 1 so that the bot can send the message that it only changed the role
         return 1
@@ -38,22 +39,22 @@ def add_to_rr_db(ctx, message, emoji, role):
 
 # Removes a role reaction from the database
 def remove_from_rr_db(ctx, message, emoji):
-    with open('DataBase.json') as file:
-        data = json.load(file)
-    if f"{ctx.guild.id}" not in data['servers']:
+    with open(f"./Database/{ctx.guild.id}/moderation.json") as file:
+        role_messages_data = json.load(file)
+    if not os.path.exists(f"./Database/{ctx.guild.id}"):
         # If the server is not yet in the database we return None so the bot can know
         return None
     
-    role_message = data['servers'][f"{ctx.guild.id}"]['role_messages'][f"{message.id}"]
+    role_message = role_messages_data[f"{message.id}"]
     if role_message is None or len(role_message) == 0:
         return
     # First we need to find the entry
     index = 0
     for role_reaction in role_message:
         if role_reaction['emoji'] == emoji:
-            data['servers'][f"{ctx.guild.id}"]['role_messages'][f"{message.id}"].pop(index)
-            with open('DataBase.json', 'w') as file:
-                json.dump(data, file, indent=4)
+            role_messages_data[f"{message.id}"].pop(index)
+            with open(f"./Database/{ctx.guild.id}/moderation.json", 'w') as file:
+                json.dump(role_messages_data, file, indent=4)
             # We found it, so let's return True so that we can let the bot know
             return True
         index += 1
@@ -72,10 +73,10 @@ class RoleCommands(commands.Cog):
         emoji = payload.emoji
         member = payload.member
         guild = self.bot.get_guild(payload.guild_id)
-        with open('DataBase.json') as file:
-            data = json.load(file)
+        with open(f"./Database/{guild.id}/moderation.json") as file:
+            role_messages_data = json.load(file)
 
-        role_message = data['servers'][f"{guild.id}"]['role_messages'][f"{message.id}"]
+        role_message = role_messages_data[f"{message.id}"]
         if role_message is None or len(role_message) == 0:
             return
         for role_reaction in role_message:
@@ -94,10 +95,10 @@ class RoleCommands(commands.Cog):
         emoji = payload.emoji
         guild = self.bot.get_guild(payload.guild_id)
         member = get(guild.members, id=payload.user_id)
-        with open('DataBase.json') as file:
-            data = json.load(file)
+        with open(f"./Database/{guild.id}/moderation.json") as file:
+            role_messages_data = json.load(file)
          
-        role_message = data['servers'][f"{guild.id}"]['role_messages'][f"{message.id}"]
+        role_message = role_messages_data[f"{message.id}"]
         if role_message is None or len(role_message) == 0:
             return
         for role_reaction in role_message:
@@ -220,7 +221,7 @@ class RoleCommands(commands.Cog):
             embed = create_embed(f":x: Role message setup failed", f"Given input is invalid", color="ERROR")
             await ctx.reply(embed=embed)
         elif isinstance(error, commands.CommandInvokeError):
-            embed = create_embed(f":x: Role message setup failed", f"Server not found in database, please use `.addservertodatabase`", color="ERROR")
+            embed = create_embed(f":x: Role message setup failed", f"Something went wrong, please contact my developer", color="ERROR")
             await ctx.reply(embed=embed)
         elif isinstance(error, commands.MissingPermissions):
             embed = create_embed(f":x: Role message setup failed", f"You don't have permission to use this command!", color="ERROR")
@@ -232,7 +233,7 @@ class RoleCommands(commands.Cog):
             embed = create_embed(f":x: Role message remove failed", f"Given input is invalid", color="ERROR")
             await ctx.reply(embed=embed)
         elif isinstance(error, commands.CommandInvokeError):
-            embed = create_embed(f":x: Role message remove failed", f"Server not found in database, please use `.addservertodatabase`", color="ERROR")
+            embed = create_embed(f":x: Role message remove failed", f"Something went wrong, please contact my developer", color="ERROR")
             await ctx.reply(embed=embed)
         elif isinstance(error, commands.MissingPermissions):
             embed = create_embed(f":x: Role message remove failed", f"You don't have permission to use this command!", color="ERROR")

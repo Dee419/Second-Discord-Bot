@@ -6,26 +6,23 @@ from Embed import create_embed
 
 # Adds a moderation entry to the database
 def add_to_moderation_db(ctx, target, reason, type):
-    with open('DataBase.json') as file:
-        data = json.load(file)
+    with open(f"./Database/{ctx.guild.id}/moderation.json") as file:
+        moderation_data = json.load(file)
 
     time = (datetime.datetime.now()).strftime("%H:%M:%S")
     today = (datetime.date.today()).strftime("%d/%m/%Y")
-    id = data['last_id'] + 1
-    data['last_id'] = id
     action_entry = {
-        "id": id,
         "reason": f"{reason}",
         "date": f"{today}",
         "time": f"{time}"
     }
     # Try to add to the user's punishments
     try:
-        data['servers'][f"{ctx.guild.id}"]['moderation'][f"{target.id}"][f"{type}"].append(action_entry)
+        moderation_data[f"{target.id}"][f"{type}"].append(action_entry)
     except:
         try:
             # Try and add the type with the entry in there
-            data['servers'][f"{ctx.guild.id}"]['moderation'][f"{target.id}"][f"{type}"] = [action_entry]
+            moderation_data[f"{target.id}"][f"{type}"] = [action_entry]
         except:
             # It could be that the user is not in the database yet
             try:
@@ -34,28 +31,28 @@ def add_to_moderation_db(ctx, target, reason, type):
                         action_entry
                     ]
                 }
-                data['servers'][f"{ctx.guild.id}"]['moderation'][f"{target.id}"] = user_entry
+                moderation_data[f"{target.id}"] = user_entry
             except:
                 # All hope is lost
                 return False
-    with open('DataBase.json', 'w') as file:
-        json.dump(data, file, indent=4)
+    with open(f"./Database/{ctx.guild.id}/moderation.json", 'w') as file:
+        json.dump(moderation_data, file, indent=4)
     return True
 
 # Returns an embed of all the punishments of a user depending on the type
 def list_helper(ctx, target, type: str):
     if target is None:
         target = ctx.author
-    with open('DataBase.json') as file:
-        data = json.load(file)
+    with open(f"./Database/{ctx.guild.id}/moderation.json") as file:
+        moderation_data = json.load(file)
     try:
-        entries = data['servers'][f"{ctx.guild.id}"]['moderation'][f"{target.id}"][f"{type.upper()}"]
+        entries = moderation_data[f"{target.id}"][f"{type.upper()}"]
     except:
         entries = {}
     if len(entries) > 0:
         embed = create_embed(f"{type.capitalize()}s for {target.name}#{target.discriminator}", "")
         for entry in entries:
-            embed.add_field(name=f"{type.capitalize()} for {target.name}#{target.discriminator}", value=f"\n**ID**: {entry['id']}\n**Reason**: {entry['reason']}\n**Date**: {entry['date']}\n**Time**: {entry['time']} CET\n", inline=False)
+            embed.add_field(name=f"{type.capitalize()} for {target.name}#{target.discriminator}", value=f"\n**Reason**: {entry['reason']}\n**Date**: {entry['date']}\n**Time**: {entry['time']} CET\n", inline=False)
         return embed
     else:
         embed = create_embed(f"No {type}s found", f"No {type}s found for {target.name}#{target.discriminator}")
@@ -63,22 +60,22 @@ def list_helper(ctx, target, type: str):
 
 # Returns an embed of all the punishments of a given type on a server
 async def all_list_helper(ctx, type: str, bot):
-    with open('DataBase.json') as file:
-        data = json.load(file)
+    with open(f"./Database/{ctx.guild.id}/moderation.json") as file:
+        moderation_data = json.load(file)
     try:
-        member_entries = data['servers'][f"{ctx.guild.id}"]['moderation']
+        member_entries = moderation_data
     except:
         member_entries = {}
     embed = create_embed(f"All {type}s on this server", "")
     found = False
     for member_entry in member_entries:
         try:
-            entries = data['servers'][f"{ctx.guild.id}"]['moderation'][f"{member_entry}"][f"{type.upper()}"]
+            entries = moderation_data[f"{member_entry}"][f"{type.upper()}"]
         except:
             entries = {}
         for entry in entries:
             target = await bot.fetch_user(int(member_entry))
-            embed.add_field(name=f"{type.capitalize()} for {target.name}#{target.discriminator}", value=f"\n**ID**: {entry['id']}\n**Reason**: {entry['reason']}\n**Date**: {entry['date']}\n**Time**: {entry['time']} CET\n", inline=False)
+            embed.add_field(name=f"{type.capitalize()} for {target.name}#{target.discriminator}", value=f"\n**Reason**: {entry['reason']}\n**Date**: {entry['date']}\n**Time**: {entry['time']} CET\n", inline=False)
             found = True
     if not found:
         embed = create_embed(f"No {type}s found on this server", f"No {type}s found on this server. Wow, good job!")
@@ -212,14 +209,14 @@ class AdminCommands(commands.Cog):
     async def setchatlogchannel(self, ctx, channel: discord.TextChannel = None):
         if channel is None:
             channel = ctx.channel
-        with open('DataBase.json') as file:
-            data = json.load(file)
+        with open(f"./Database/{ctx.guild.id}/general.json") as file:
+            general_data = json.load(file)
         try:
-            data['servers'][f"{ctx.guild.id}"]['chat_log_channel_id'] = channel.id
+            general_data['chat_log_channel_id'] = channel.id
         except:
             raise commands.CommandInvokeError("NotFoundInDatabase")
-        with open('DataBase.json', 'w') as file:
-            json.dump(data, file, indent=4)
+        with open(f"./Database/{ctx.guild.id}/general.json", 'w') as file:
+            json.dump(general_data, file, indent=4)
         embed = create_embed(":white_check_mark: Successfully changed the chat log channel", f"Changed the chat log channel to {channel.mention}", color="SUCCESS")
         await ctx.reply(embed=embed)
 

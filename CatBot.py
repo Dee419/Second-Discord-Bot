@@ -5,6 +5,7 @@ import json
 import datetime
 from discord.ext import commands
 from Embed import create_embed
+from pathlib import Path
 
 print("Loading intents")
 intents = discord.Intents.default()
@@ -23,17 +24,17 @@ async def load_extensions():
 @bot.event
 async def on_ready():
     print("Bot started!")
-    with open('DataBase.json') as file:
-        data = json.load(file)
     for guild in bot.guilds:
-        print(f"Checking bans for {guild.name}")
-        if str(guild.id) in data['servers']:
+        print(f"Checking missing bans for {guild.name}")
+        if os.path.exists(f"./Database/{guild.id}"):
+            with open(f"./Database/{guild.id}/moderation.json") as file:
+                moderation_data = json.load(file)
             added_bans = 0
             async for entry in guild.bans():
-                if str(entry.user.id) in data['servers'][f"{guild.id}"]['moderation']:
+                if str(entry.user.id) in moderation_data:
                     # The user is on the server and has been punished before (according to the database), let's check if all of their bans are on the database
                     try:
-                        for db_entry in data['servers'][f"{guild.id}"]['moderation'][f"{entry.user.id}"]['BAN']:
+                        for db_entry in moderation_data[f"{entry.user.id}"]['BAN']:
                             if entry.reason == db_entry['reason']:
                                 found = True
                                 break
@@ -42,21 +43,18 @@ async def on_ready():
                     if not found:
                         time = (datetime.datetime.now()).strftime("%H:%M:%S")
                         today = (datetime.date.today()).strftime("%d/%m/%Y")
-                        id = data['last_id'] + 1
-                        data['last_id'] = id
                         action_entry = {
-                            "id": id,
                             "reason": f"{entry.reason}",
                             "date": f"{today}",
                             "time": f"{time}"
                         }
                         try:
-                            data['servers'][f"{guild.id}"]['moderation'][f"{entry.user.id}"]['BAN'].append(action_entry)
+                            moderation_data[f"{entry.user.id}"]['BAN'].append(action_entry)
                             added_bans += 1
                         except:
                             # This should never fail, but we'll try it anyways just to be sure
                             try:
-                                data['servers'][f"{guild.id}"]['moderation'][f"{entry.user.id}"]['BAN'] = [action_entry]
+                                moderation_data[f"{entry.user.id}"]['BAN'] = [action_entry]
                                 added_bans += 1
                             except:
                                 print(f"Failed to add ban for {entry.user.name}#{entry.user.discriminator}")
@@ -65,11 +63,7 @@ async def on_ready():
                     # The user is on the server and has been punished before but they're not in the database
                     time = (datetime.datetime.now()).strftime("%H:%M:%S")
                     today = (datetime.date.today()).strftime("%d/%m/%Y")
-                    # print(f"TIME: {time}\nDATE: {today}")
-                    id = data['last_id'] + 1
-                    data['last_id'] = id
                     action_entry = {
-                        "id": id,
                         "reason": f"{entry.reason}",
                         "date": f"{today}",
                         "time": f"{time}"
@@ -82,27 +76,27 @@ async def on_ready():
                     }
                     try:
                         # This should never fail, but we'll try it anyways just to be sure
-                        data['servers'][f"{guild.id}"]['moderation'][f"{entry.user.id}"] = user_entry
+                        moderation_data[f"{entry.user.id}"] = user_entry
                         added_bans += 1
                     except:
                         print(f"Failed to add ban for {entry.user.name}#{entry.user.discriminator}")
             if not found:
-                with open('DataBase.json', 'w') as file:
-                    json.dump(data, file, indent=4)
+                with open(f"./Database/{guild.id}/moderation.json", 'w') as file:
+                    json.dump(moderation_data, file, indent=4)
             if added_bans > 0:
                 print(f"Added {added_bans} missing bans for {guild.name}")
             else:
-                print(f"There we no missing bans on {guild.name}")
+                print(f"There were no missing bans on {guild.name}")
 
 @bot.event
 async def on_member_ban(guild, user):
     time = datetime.datetime.now()
     today = datetime.date.today()
     found = False
-    with open('DataBase.json') as file:
-        data = json.load(file)
+    with open(f"./Database/{guild.id}/moderation.json") as file:
+        moderation_data = json.load(file)
     try:
-        ban_entries = data['servers'][f"{guild.id}"]['moderation'][f"{user.id}"]['BAN']
+        ban_entries = moderation_data[f"{user.id}"]['BAN']
     except:
         ban_entries = []
     for entry in ban_entries:
@@ -110,23 +104,20 @@ async def on_member_ban(guild, user):
             found = True
             break
     if not found:
-        id = data['last_id'] + 1
-        data['last_id'] = id
         time = time.strftime("%H:%M:%S")
         today = today.strftime("%d/%m/%Y")
         action_entry = {
-            "id": id,
             "reason": f"No reason found",
             "date": f"{today}",
             "time": f"{time}"
         }
         # Try to add to the user's punishments
         try:
-            data['servers'][f"{guild.id}"]['moderation'][f"{user.id}"]['BAN'].append(action_entry)
+            moderation_data[f"{user.id}"]['BAN'].append(action_entry)
         except:
             try:
                 # Try and add the type with the entry in there
-                data['servers'][f"{guild.id}"]['moderation'][f"{user.id}"]['BAN'] = [action_entry]
+                moderation_data[f"{user.id}"]['BAN'] = [action_entry]
             except:
                 # It could be that the user is not in the database yet
                 user_entry = {
@@ -134,36 +125,55 @@ async def on_member_ban(guild, user):
                         action_entry
                     ]
                 }
-                data['servers'][f"{guild.id}"]['moderation'][f"{user.id}"] = user_entry
-        with open('DataBase.json', 'w') as file:
-            json.dump(data, file, indent=4)
+                moderation_data[f"{user.id}"] = user_entry
+        with open(f"./Database/{guild.id}/moderation.json", 'w') as file:
+            json.dump(moderation_data, file, indent=4)
         print(f"Added a ban for {entry.user.name}#{entry.user.discriminator} to the database")
 
 @bot.event
 async def on_guild_join(guild):
-    with open('DataBase.json') as file:
-        data = json.load(file)
     already = False
-    for server in data['servers']:
-        # First check if the server is already in the database
-        if server == str(guild.id):
-            already = True
+    # First check if the server is already in the database
+    if os.path.exists(f"./Database/{guild.id}"):
+        already = True
     if not already:
         # If the server is not yet in the database we must add it to the database
-        to_add = {
+        os.mkdir(f"./Database/{guild.id}")
+        print(f"Made a directory: ./Database/{guild.id}")
+
+        # First write general.json
+        base = Path('./Database/')
+        json_path = base / ('./Database/') / ('general.json')
+        general_data = {
             "chat_log_channel_id": 0,
             "welcome_channel_id": 0,
-            "moderation": {},
-            "role_messages": {}
         }
-        data['servers'][f"{guild.id}"] = to_add
-    print(f"Adding missing bans for {guild.name}")
+        json_path.write_text(json.dumps(general_data, indent=4))
+        print(f"Wrote ./Database/{guild.id}/general.json")
+
+        # Second write moderation.json
+        base = Path('./Database/')
+        json_path = base / (f"{guild.id}") / ('moderation.json')
+        moderation_data = {}
+        json_path.write_text(json.dumps(moderation_data, indent=4))
+        print(f"Wrote ./Database/{guild.id}/moderation.json")
+
+        # Third write role_messages.json
+        base = Path('./Database/')
+        json_path = base / (f"{guild.id}") / ('role_messages.json')
+        role_messages_data = {}
+        json_path.write_text(json.dumps(role_messages_data, indent=4))
+    
+    # Now add missing bans to the database
+    with open(f"./Database/{guild.id}/moderation.json") as file:
+        moderation_data = json.load(file)
+    print(f"Checking missing bans for {guild.name}")
     added_bans = 0
     async for entry in guild.bans():
-        if str(entry.user.id) in data['servers'][f"{guild.id}"]['moderation']:
+        if str(entry.user.id) in moderation_data:
             # The user is on the server and has been punished before (according to the database), let's check if all of their bans are on the database
             try:
-                for db_entry in data['servers'][f"{guild.id}"]['moderation'][f"{entry.user.id}"]['BAN']:
+                for db_entry in moderation_data[f"{entry.user.id}"]['BAN']:
                     if entry.reason == db_entry['reason']:
                         found = True
                         break
@@ -172,21 +182,18 @@ async def on_guild_join(guild):
             if not found:
                 time = (datetime.datetime.now()).strftime("%H:%M:%S")
                 today = (datetime.date.today()).strftime("%d/%m/%Y")
-                id = data['last_id'] + 1
-                data['last_id'] = id
                 action_entry = {
-                    "id": id,
                     "reason": f"{entry.reason}",
                     "date": f"{today}",
                     "time": f"{time}"
                 }
                 try:
-                    data['servers'][f"{guild.id}"]['moderation'][f"{entry.user.id}"]['BAN'].append(action_entry)
+                    moderation_data[f"{entry.user.id}"]['BAN'].append(action_entry)
                     added_bans += 1
                 except:
                     # This should never fail, but we'll try it anyways just to be sure
                     try:
-                        data['servers'][f"{guild.id}"]['moderation'][f"{entry.user.id}"]['BAN'] = [action_entry]
+                        moderation_data[f"{entry.user.id}"]['BAN'] = [action_entry]
                         added_bans += 1
                     except:
                         print(f"Failed to add ban for {entry.user.name}#{entry.user.discriminator}")
@@ -195,11 +202,7 @@ async def on_guild_join(guild):
             # The user is on the server and has been punished before but they're not in the database
             time = (datetime.datetime.now()).strftime("%H:%M:%S")
             today = (datetime.date.today()).strftime("%d/%m/%Y")
-            # print(f"TIME: {time}\nDATE: {today}")
-            id = data['last_id'] + 1
-            data['last_id'] = id
             action_entry = {
-                "id": id,
                 "reason": f"{entry.reason}",
                 "date": f"{today}",
                 "time": f"{time}"
@@ -212,28 +215,28 @@ async def on_guild_join(guild):
             }
             try:
                 # This should never fail, but we'll try it anyways just to be sure
-                data['servers'][f"{guild.id}"]['moderation'][f"{entry.user.id}"] = user_entry
+                moderation_data[f"{entry.user.id}"] = user_entry
                 added_bans += 1
             except:
                 print(f"Failed to add ban for {entry.user.name}#{entry.user.discriminator}")
+    if not found:
+        with open(f"./Database/{guild.id}/moderation.json", 'w') as file:
+            json.dump(moderation_data, file, indent=4)
     if added_bans > 0:
         print(f"Added {added_bans} missing bans for {guild.name}")
     else:
-        print(f"There we no missing bans on {guild.name}")
-    with open('DataBase.json', 'w') as file:
-        json.dump(data, file, indent=4)
+        print(f"There were no missing bans on {guild.name}")
 
 @bot.event
 async def on_raw_message_delete(payload):
     message = payload.cached_message
     guild_id = payload.guild_id
-    chat_log_channel_id = None
-    with open('DataBase.json') as file:
+    with open(f"./Database/{guild_id}/general.json") as file:
         data = json.load(file)
     try:
-        chat_log_channel_id = data['servers'][f"{guild_id}"]['chat_log_channel_id']
+        chat_log_channel_id = data['chat_log_channel_id']
     except:
-        pass
+        chat_log_channel_id = None
     if message is not None and chat_log_channel_id is not None and chat_log_channel_id != 0:
         # Ignore messages where the content stays the same or the author is a bot
         if message.author.bot:
@@ -266,11 +269,14 @@ async def on_raw_message_delete(payload):
 
 @bot.event
 async def on_raw_message_edit(payload):
-    with open('DataBase.json') as file:
-        data = json.load(file)
     message = payload.cached_message
     guild_id = payload.guild_id
-    chat_log_channel_id = data['servers'][f"{guild_id}"]['chat_log_channel_id']
+    with open(f"./Database/{guild_id}/general.json") as file:
+        data = json.load(file)
+    try:
+        chat_log_channel_id = data['chat_log_channel_id']
+    except:
+        chat_log_channel_id = None
     if message is None:
         # We will try and retrieve the message from non_cached_messages
         for non_cached_message in non_cached_messages:
@@ -313,9 +319,12 @@ async def on_raw_message_edit(payload):
 
 @bot.event
 async def on_member_join(member):
-    with open('DataBase.json') as file:
+    with open(f"./Database/{member.guild.id}/general.json") as file:
         data = json.load(file)
-    chat_log_channel_id = data['servers'][f"{member.guild.id}"]['chat_log_channel_id']
+    try:
+        chat_log_channel_id = data['chat_log_channel_id']
+    except:
+        chat_log_channel_id = None
     if chat_log_channel_id is not None and chat_log_channel_id != 0:
         # We have the chat log channel
         chat_log_channel = bot.get_channel(chat_log_channel_id)
@@ -326,9 +335,12 @@ async def on_member_join(member):
 
 @bot.event
 async def on_member_remove(member):
-    with open('DataBase.json') as file:
+    with open(f"./Database/{member.guild.id}/general.json") as file:
         data = json.load(file)
-    chat_log_channel_id = data['servers'][f"{member.guild.id}"]['chat_log_channel_id']
+    try:
+        chat_log_channel_id = data['chat_log_channel_id']
+    except:
+        chat_log_channel_id = None
     if chat_log_channel_id is not None and chat_log_channel_id != 0:
         # We have the chat log channel
         chat_log_channel = bot.get_channel(chat_log_channel_id)
