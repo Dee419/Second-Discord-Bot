@@ -24,6 +24,7 @@ async def load_extensions():
 @bot.event
 async def on_ready():
     print("Bot started!")
+    all_added_bans = 0
     for guild in bot.guilds:
         print(f"Checking missing bans for {guild.name}")
         if os.path.exists(f"./Database/{guild.id}"):
@@ -87,6 +88,8 @@ async def on_ready():
                 print(f"Added {added_bans} missing bans for {guild.name}")
             else:
                 print(f"There were no missing bans on {guild.name}")
+        all_added_bans += added_bans
+    print(f"Checked all missing bans, added {all_added_bans} missing bans")
 
 @bot.event
 async def on_member_ban(guild, user):
