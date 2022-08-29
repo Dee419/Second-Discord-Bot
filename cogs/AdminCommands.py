@@ -255,6 +255,7 @@ class AdminCommands(commands.Cog):
                 reaction, user = await self.bot.wait_for('reaction_add', timeout=120.0, check=check)
             except asyncio.TimeoutError:
                 await ctx.send("I'm going to sleep")
+                return
             else:
                 print(f"{ctx.author.name}#{ctx.author.discriminator} responded with {reaction.emoji}")
                 if reaction.emoji == '◀️' and index >= 10:
