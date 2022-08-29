@@ -1,6 +1,7 @@
 import discord
 import json
 import datetime
+import asyncio
 from discord.ext import commands
 from Embed import create_embed
 
@@ -38,49 +39,6 @@ def add_to_moderation_db(ctx, target, reason, type):
     with open(f"./Database/{ctx.guild.id}/moderation.json", 'w') as file:
         json.dump(moderation_data, file, indent=4)
     return True
-
-# Returns an embed of all the punishments of a user depending on the type
-def list_helper(ctx, target, type: str):
-    if target is None:
-        target = ctx.author
-    with open(f"./Database/{ctx.guild.id}/moderation.json") as file:
-        moderation_data = json.load(file)
-    try:
-        entries = moderation_data[f"{target.id}"][f"{type.upper()}"]
-    except:
-        entries = {}
-    if len(entries) > 0:
-        embed = create_embed(f"{type.capitalize()}s for {target.name}#{target.discriminator}", "")
-        for entry in entries:
-            embed.add_field(name=f"{type.capitalize()} for {target.name}#{target.discriminator}", value=f"\n**Reason**: {entry['reason']}\n**Date**: {entry['date']}\n**Time**: {entry['time']} CET\n", inline=False)
-        return embed
-    else:
-        embed = create_embed(f"No {type}s found", f"No {type}s found for {target.name}#{target.discriminator}")
-        return embed
-
-# Returns an embed of all the punishments of a given type on a server
-async def all_list_helper(ctx, type: str, bot):
-    with open(f"./Database/{ctx.guild.id}/moderation.json") as file:
-        moderation_data = json.load(file)
-    try:
-        member_entries = moderation_data
-    except:
-        member_entries = {}
-    embed = create_embed(f"All {type}s on this server", "")
-    found = False
-    for member_entry in member_entries:
-        try:
-            entries = moderation_data[f"{member_entry}"][f"{type.upper()}"]
-        except:
-            entries = {}
-        for entry in entries:
-            target = await bot.fetch_user(int(member_entry))
-            embed.add_field(name=f"{type.capitalize()} for {target.name}#{target.discriminator}", value=f"\n**Reason**: {entry['reason']}\n**Date**: {entry['date']}\n**Time**: {entry['time']} CET\n", inline=False)
-            found = True
-    if not found:
-        embed = create_embed(f"No {type}s found on this server", f"No {type}s found on this server. Wow, good job!")
-        return embed
-    return embed
 
 class AdminCommands(commands.Cog):
     def __init__(self, bot):
@@ -220,62 +178,117 @@ class AdminCommands(commands.Cog):
         embed = create_embed(":white_check_mark: Successfully changed the chat log channel", f"Changed the chat log channel to {channel.mention}", color="SUCCESS")
         await ctx.reply(embed=embed)
 
+    async def listpunishments(self, target, type: str, moderation_data: dict, user_list: list, index: int=0, max_index: int=0):
+        if len(user_list) == 1 and target != 'all':
+            # This is a .listpunishments MEMBER-ID situation
+            if len(moderation_data) == 0:
+                # There are no punishments
+                return create_embed(f"Page {index//10+1}/{max_index//10+1} of {type}s for {target.name}#{target.discriminator}", f"No {type}s found")
+            embed = create_embed(f"Page {index//10+1}/{max_index//10+1} of {type}s for {target.name}#{target.discriminator}", "")
+            while index < max_index:
+                entry = moderation_data[index]
+                embed.add_field(name=f"{type.capitalize()} for {target.name}#{target.discriminator}", value=f"\n**Reason**: {entry['reason']}\n**Date**: {entry['date']}\n**Time**: {entry['time']} CET\n", inline=False)
+                index += 1
+            return embed
+        else:
+            # This is a .listpunishments all situation
+            if len(moderation_data) == 0:
+                # There are no punishments
+                return create_embed(f"Page {index//10+1}/{max_index//10+1} of all {type}s on the server", f"No {type}s found")
+            embed = create_embed(f"Page {index//10+1}/{max_index//10+1} of {type}s on this server", "")
+            while index < max_index:
+                entry = moderation_data[index]
+                target = await self.bot.fetch_user(int(user_list[index]))
+                embed.add_field(name=f"{type.capitalize()} for {target.name}#{target.discriminator}", value=f"\n**Reason**: {entry['reason']}\n**Date**: {entry['date']}\n**Time**: {entry['time']} CET\n", inline=False)
+                index += 1
+            return embed
+
+    async def list_helper(self, ctx, target, type: str):
+        if target is None:
+            all = False
+            target = ctx.author
+        elif target == 'all':
+            target = 'all'
+            all = True
+        else: # target is either a mention, a user-id or something invalid
+            all = False
+            # In case target is a mention
+            try:
+                target = ctx.message.mentions[0]
+            except:
+                # In case target is a user id
+                try:
+                    target = await self.bot.fetch_user(target)
+                except:
+                    # target is invalid
+                    raise commands.BadArgument
+        with open(f"./Database/{ctx.guild.id}/moderation.json") as file:
+            moderation_data = json.load(file)
+        user_list = []
+        if not all:
+            try:
+                moderation_data = moderation_data[f"{target.id}"][type.upper()]
+            except:
+                moderation_data = {}
+            user_list.append(target.id)
+        else:
+            # Get all punishments of all users
+            new_data = []
+            for member_entry in moderation_data:
+                try:
+                    for entry in moderation_data[member_entry][type.upper()]:
+                        new_data.append(entry)
+                        user_list.append(member_entry)
+                except:
+                    pass
+            moderation_data = new_data
+        current_page = await self.listpunishments(target, type, moderation_data, user_list, 0, 10)
+
+        message = await ctx.reply(embed=current_page)
+        await message.add_reaction('◀️')
+        await message.add_reaction('▶️')
+        index = 0
+        while True:
+            def check(reaction, user):
+                return user == ctx.author and str(reaction.emoji) in ('◀️', '▶️')
+            try:
+                reaction, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=check)
+            except asyncio.TimeoutError:
+                await ctx.send("I'm going to sleep")
+            else:
+                if reaction.emoji == '◀️' and index >= 10:
+                    index -= 10
+                elif reaction.emoji == '▶️' and index <= len(moderation_data) - 10:
+                    index += 10
+                if index+10 < len(moderation_data):
+                    current_page = await self.listpunishments(target, type, moderation_data, user_list, index, index+10)
+                else:
+                    current_page = await self.listpunishments(target, type, moderation_data, user_list, index, len(moderation_data))
+                await message.edit(embed=current_page)
+                # Try to remove either of the author's reactions
+                try:
+                    await message.remove_reaction('◀️', ctx.author)
+                except:
+                    pass
+                try:
+                    await message.remove_reaction('▶️', ctx.author)
+                except:
+                    pass
+
     @commands.command(help="Lists all of the warns of a specific user", aliases=['listwarnings'])
     @commands.guild_only()
     async def listwarns(self, ctx, target=None):
-        if target is not None and target != 'all':
-            target = await self.bot.fetch_user(int(target))
-            if target is None:
-                raise commands.BadArgument
-            embed = list_helper(ctx, target, "warn")
-            await ctx.reply(embed=embed)
-        elif target == 'all':
-            if ctx.author.guild_permissions.administrator:
-                embed = await all_list_helper(ctx, "warn", self.bot)
-                await ctx.reply(embed=embed)
-            else:
-                raise commands.MissingPermissions
-        else:
-            embed = list_helper(ctx, ctx.author, "warn")
-            await ctx.reply(embed=embed)
-    
+        await self.list_helper(ctx, target, 'warn')
+
     @commands.command(help="Lists all of the kicks of a specific user")
     @commands.guild_only()
     async def listkicks(self, ctx, target=None):
-        if target is not None and target != 'all':
-            target = await self.bot.fetch_user(int(target))
-            if target is None:
-                raise commands.BadArgument
-            embed = list_helper(ctx, target, "kick")
-            await ctx.reply(embed=embed)
-        elif target == 'all':
-            if ctx.author.guild_permissions.administrator:
-                embed = await all_list_helper(ctx, "kick", self.bot)
-                await ctx.reply(embed=embed)
-            else:
-                raise commands.MissingPermissions
-        else:
-            embed = list_helper(ctx, ctx.author, "kick")
-            await ctx.reply(embed=embed)
+        await self.list_helper(ctx, target, 'kick')
 
     @commands.command(help="Lists all of the bans of a specific user")
     @commands.guild_only()
     async def listbans(self, ctx, target=None):
-        if target is not None and target != 'all':
-            target = await self.bot.fetch_user(int(target))
-            if target is None:
-                raise commands.BadArgument
-            embed = list_helper(ctx, target, "ban")
-            await ctx.reply(embed=embed)
-        elif target == 'all':
-            if ctx.author.guild_permissions.administrator:
-                embed = await all_list_helper(ctx, "ban", self.bot)
-                await ctx.reply(embed=embed)
-            else:
-                raise commands.MissingPermissions
-        else:
-            embed = list_helper(ctx, ctx.author, "ban")
-            await ctx.reply(embed=embed)
+        await self.list_helper(ctx, target, 'ban')
 
     # Error handlers
     @kick.error
