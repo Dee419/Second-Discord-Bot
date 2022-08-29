@@ -178,13 +178,13 @@ class AdminCommands(commands.Cog):
         embed = create_embed(":white_check_mark: Successfully changed the chat log channel", f"Changed the chat log channel to {channel.mention}", color="SUCCESS")
         await ctx.reply(embed=embed)
 
-    async def listpunishments(self, target, type: str, moderation_data: dict, user_list: list, index: int=0, max_index: int=0):
+    async def listpunishments(self, target, type: str, moderation_data: dict, user_list: list, len_punishments: int, index: int=0, max_index: int=0):
         if len(user_list) == 1 and target != 'all':
             # This is a .listpunishments MEMBER-ID situation
             if len(moderation_data) == 0:
                 # There are no punishments
-                return create_embed(f"Page {index//10+1}/{max_index//10+1} of {type}s for {target.name}#{target.discriminator}", f"No {type}s found")
-            embed = create_embed(f"Page {index//10+1}/{max_index//10+1} of {type}s for {target.name}#{target.discriminator}", "")
+                return create_embed(f"Page {index//10+1}/{len_punishments//10+1} of {type}s for {target.name}#{target.discriminator}", f"No {type}s found")
+            embed = create_embed(f"Page {index//10+1}/{len_punishments//10+1} of {type}s for {target.name}#{target.discriminator}", "")
             while index < max_index:
                 entry = moderation_data[index]
                 embed.add_field(name=f"{type.capitalize()} for {target.name}#{target.discriminator}", value=f"\n**Reason**: {entry['reason']}\n**Date**: {entry['date']}\n**Time**: {entry['time']} CET\n", inline=False)
@@ -194,8 +194,8 @@ class AdminCommands(commands.Cog):
             # This is a .listpunishments all situation
             if len(moderation_data) == 0:
                 # There are no punishments
-                return create_embed(f"Page {index//10+1}/{max_index//10+1} of all {type}s on the server", f"No {type}s found")
-            embed = create_embed(f"Page {index//10+1}/{max_index//10+1} of {type}s on this server", "")
+                return create_embed(f"Page {index//10+1}/{len_punishments//10+1} of all {type}s on the server", f"No {type}s found")
+            embed = create_embed(f"Page {index//10+1}/{len_punishments//10+1} of {type}s on this server", "")
             while index < max_index:
                 entry = moderation_data[index]
                 target = await self.bot.fetch_user(int(user_list[index]))
@@ -242,7 +242,7 @@ class AdminCommands(commands.Cog):
                 except:
                     pass
             moderation_data = new_data
-        current_page = await self.listpunishments(target, type, moderation_data, user_list, 0, 10)
+        current_page = await self.listpunishments(target, type, moderation_data, user_list, len(moderation_data), 0, 10)
 
         message = await ctx.reply(embed=current_page)
         await message.add_reaction('◀️')
@@ -252,18 +252,19 @@ class AdminCommands(commands.Cog):
             def check(reaction, user):
                 return user == ctx.author and str(reaction.emoji) in ('◀️', '▶️')
             try:
-                reaction, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=check)
+                reaction, user = await self.bot.wait_for('reaction_add', timeout=120.0, check=check)
             except asyncio.TimeoutError:
                 await ctx.send("I'm going to sleep")
             else:
+                print(f"{ctx.author.name}#{ctx.author.discriminator} responded with {reaction.emoji}")
                 if reaction.emoji == '◀️' and index >= 10:
                     index -= 10
                 elif reaction.emoji == '▶️' and index <= len(moderation_data) - 10:
                     index += 10
                 if index+10 < len(moderation_data):
-                    current_page = await self.listpunishments(target, type, moderation_data, user_list, index, index+10)
+                    current_page = await self.listpunishments(target, type, moderation_data, user_list, len(moderation_data), index, index+10)
                 else:
-                    current_page = await self.listpunishments(target, type, moderation_data, user_list, index, len(moderation_data))
+                    current_page = await self.listpunishments(target, type, moderation_data, user_list, len(moderation_data), index, len(moderation_data))
                 await message.edit(embed=current_page)
                 # Try to remove either of the author's reactions
                 try:
