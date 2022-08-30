@@ -55,7 +55,7 @@ class AdminCommands(commands.Cog):
             embed = create_embed(f":information_source: Kick info", f"Allows the user to kick a member.\nExample: `.kick 206398035654213633 Toxic Behaviour`", color="INFO")
             await ctx.reply(embed=embed)
         elif target == self.bot.user:
-            raise commands.BadArgument
+            raise commands.MemberNotFound
         else:
             if len(args) > 0:
                 reason = ""
@@ -84,7 +84,7 @@ class AdminCommands(commands.Cog):
             embed = create_embed(f":information_source: Ban info", f"Allows the user to ban a user. The user in question does not need to be on the server.\nExample: `.ban 206398035654213633 Hate Speech`", color="INFO")
             await ctx.reply(embed=embed)
         elif target == self.bot.user:
-            raise commands.BadArgument
+            raise commands.MemberNotFound
         else:
             if len(args) > 0:
                 reason = ""
@@ -244,38 +244,59 @@ class AdminCommands(commands.Cog):
             moderation_data = new_data
         current_page = await self.listpunishments(target, type, moderation_data, user_list, len(moderation_data), 0, 10)
 
-        message = await ctx.reply(embed=current_page)
-        await message.add_reaction('◀️')
-        await message.add_reaction('▶️')
-        index = 0
-        while True:
-            def check(reaction, user):
-                return user == ctx.author and str(reaction.emoji) in ('◀️', '▶️')
-            try:
-                reaction, user = await self.bot.wait_for('reaction_add', timeout=120.0, check=check)
-            except asyncio.TimeoutError:
-                await ctx.send("I'm going to sleep")
-                return
-            else:
-                print(f"{ctx.author.name}#{ctx.author.discriminator} responded with {reaction.emoji}")
-                if reaction.emoji == '◀️' and index >= 10:
-                    index -= 10
-                elif reaction.emoji == '▶️' and index <= len(moderation_data) - 10:
-                    index += 10
-                if index+10 < len(moderation_data):
-                    current_page = await self.listpunishments(target, type, moderation_data, user_list, len(moderation_data), index, index+10)
+        class PunishmentMenu(discord.ui.View):
+            def __init__(self, ctx, *, index: int=0, timeout: float=120.0):
+                super().__init__(timeout=timeout)
+                self.index = index
+
+            # Go to the first page
+            @discord.ui.button(style=discord.ButtonStyle.primary, emoji='⏪', label='First page')
+            async def button_first_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+                if interaction.user.id == ctx.author.id:
+                    self.index = 0
+                if self.index + 10 < len(moderation_data):
+                    current_page = await AdminCommands.listpunishments(target, target, type, moderation_data, user_list, len(moderation_data), self.index, self.index+10)
                 else:
-                    current_page = await self.listpunishments(target, type, moderation_data, user_list, len(moderation_data), index, len(moderation_data))
-                await message.edit(embed=current_page)
-                # Try to remove either of the author's reactions
-                try:
-                    await message.remove_reaction('◀️', ctx.author)
-                except:
-                    pass
-                try:
-                    await message.remove_reaction('▶️', ctx.author)
-                except:
-                    pass
+                    current_page = await AdminCommands.listpunishments(target, target, type, moderation_data, user_list, len(moderation_data), self.index, len(moderation_data))
+                await interaction.response.edit_message(embed=current_page)
+            
+            # Go to the previous page
+            @discord.ui.button(style=discord.ButtonStyle.primary, emoji='◀️', label='Previous page')
+            async def button_previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+                if interaction.user.id == ctx.author.id and self.index >= 10:
+                    self.index -= 10
+                if self.index + 10 < len(moderation_data):
+                    current_page = await AdminCommands.listpunishments(target, target, type, moderation_data, user_list, len(moderation_data), self.index, self.index+10)
+                else:
+                    current_page = await AdminCommands.listpunishments(target, target, type, moderation_data, user_list, len(moderation_data), self.index, len(moderation_data))
+                await interaction.response.edit_message(embed=current_page)
+
+            # Go to the next page
+            @discord.ui.button(style=discord.ButtonStyle.primary, emoji='▶️', label='Next page')
+            async def button_next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+                if interaction.user.id == ctx.author.id and self.index <= len(moderation_data) - 10:
+                    self.index += 10
+                if self.index + 10 < len(moderation_data):
+                    current_page = await AdminCommands.listpunishments(target, target, type, moderation_data, user_list, len(moderation_data), self.index, self.index+10)
+                else:
+                    current_page = await AdminCommands.listpunishments(target, target, type, moderation_data, user_list, len(moderation_data), self.index, len(moderation_data))
+                await interaction.response.edit_message(embed=current_page)
+
+            # Go to the last page
+            @discord.ui.button(style=discord.ButtonStyle.primary, emoji='⏩', label='Last page')
+            async def button_last_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+                if interaction.user.id == ctx.author.id:
+                    self.index = str(len(moderation_data))
+                    if len(self.index) > 1:
+                        self.index = int(self.index[:-1]+"0")
+                if self.index + 10 < len(moderation_data):
+                    current_page = await AdminCommands.listpunishments(target, target, type, moderation_data, user_list, len(moderation_data), self.index, self.index+10)
+                else:
+                    current_page = await AdminCommands.listpunishments(target, target, type, moderation_data, user_list, len(moderation_data), self.index, len(moderation_data))
+                await interaction.response.edit_message(embed=current_page)
+
+        view = PunishmentMenu(ctx=ctx)
+        await ctx.reply(embed=current_page, view=view)
 
     @commands.command(help="Lists all of the warns of a specific user", aliases=['listwarnings'])
     @commands.guild_only()
@@ -296,16 +317,19 @@ class AdminCommands(commands.Cog):
     @kick.error
     async def kick_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
-            embed = create_embed(f":x: Kick failed", f"You don't have permission to kick members!", color="ERROR")
+            embed = create_embed(f":x: Kick failed", f"You don't have permission to ban users!", color="ERROR")
             await ctx.reply(embed=embed)
         elif isinstance(error, commands.BotMissingPermissions):
-            embed = create_embed(f":x: Kick failed", f"I don't have permission to kick members!", color="ERROR")
-            await ctx.reply(embed=embed)
-        elif isinstance(error, commands.CommandInvokeError):
-            embed = create_embed(f":x: Kick failed", f"Something went wrong, please contact my developer", color="ERROR")
+            embed = create_embed(f":x: Kick failed", f"I don't have permission to ban users!", color="ERROR")
             await ctx.reply(embed=embed)
         elif isinstance(error, commands.BadArgument):
-            embed = create_embed(f":x: Kick failed", f"I can't kick myself. Just manually kick me if you really want me gone :(", color="ERROR")
+            embed = create_embed(f":x: Kick failed", f"The given member does not exist. Are you sure they're on the server?", color="ERROR")
+            await ctx.reply(embed=embed)
+        elif isinstance(error, commands.MemberNotFound):
+            embed = create_embed(f":x: Kick failed", f"I can't ban myself :(", color="ERROR")
+            await ctx.reply(embed=embed)
+        else:
+            embed = create_embed(f":x: Kick failed", f"Something went wrong, please contact my developer", color="ERROR")
             await ctx.reply(embed=embed)
 
     @ban.error
@@ -316,17 +340,14 @@ class AdminCommands(commands.Cog):
         elif isinstance(error, commands.BotMissingPermissions):
             embed = create_embed(f":x: Ban failed", f"I don't have permission to ban users!", color="ERROR")
             await ctx.reply(embed=embed)
-        elif isinstance(error, commands.CommandInvokeError):
-            embed = create_embed(f":x: Ban failed", f"Something went wrong, please contact my developer", color="ERROR")
-            await ctx.reply(embed=embed)
         elif isinstance(error, commands.BadArgument):
-            embed = create_embed(f":x: Ban failed", f"I can't ban myself. Just manually ban me if you really want me gone ;-;", color="ERROR")
+            embed = create_embed(f":x: Ban failed", f"The given user does not exist.", color="ERROR")
             await ctx.reply(embed=embed)
         elif isinstance(error, commands.MemberNotFound):
-            embed = create_embed(f":x: Ban failed", f"I can't ban users who are not on the server", color="ERROR")
+            embed = create_embed(f":x: Ban failed", f"I can't ban myself :(", color="ERROR")
             await ctx.reply(embed=embed)
-        elif isinstance(error, commands.UserNotFound):
-            embed = create_embed(f":x: Ban failed", f"The user given does not exist", color="ERROR")
+        else:
+            embed = create_embed(f":x: Ban failed", f"Something went wrong, please contact my developer", color="ERROR")
             await ctx.reply(embed=embed)
 
     @purge.error
@@ -334,13 +355,19 @@ class AdminCommands(commands.Cog):
         if isinstance(error, commands.MissingRequiredArgument):
             embed = create_embed(f":information_source: Purge info", f"Allows the user to purge a given amount of messages. You can also choose whose messages are to be purged.\nExample: `.purge 10 206398035654213633`", color="INFO")
             await ctx.reply(embed=embed)
+        elif isinstance(error, commands.BadArgument):
+            embed = create_embed(f":x: Purge failed", f"Invalid argument(s) used, please try again", color="ERROR")
+            await ctx.reply(embed=embed)
+        else:
+            embed = create_embed(f":x: Purge failed", f"Something went wrong, please contact my developer", color="ERROR")
+            await ctx.reply(embed=embed)
 
     @warn.error
     async def warn_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
             embed = create_embed(f":x: Warn failed", f"You don't have permission to warn members!", color="ERROR")
             await ctx.reply(embed=embed)
-        elif isinstance(error, commands.CommandInvokeError):
+        else:
             embed = create_embed(f":x: Warn failed", f"Something went wrong, please contact my developer", color="ERROR")
             await ctx.reply(embed=embed)
         
@@ -349,7 +376,7 @@ class AdminCommands(commands.Cog):
         if isinstance(error, commands.MissingPermissions):
             embed = create_embed(f":x: Set chat log channel failed", f"You don't have permission to change the chat log channel!", color="ERROR")
             await ctx.reply(embed=embed)
-        elif isinstance(error, commands.CommandInvokeError):
+        else:
             embed = create_embed(f":x: List punishments failed", f"Something went wrong, please contact my developer", color="ERROR")
             await ctx.reply(embed=embed)
 
@@ -361,7 +388,7 @@ class AdminCommands(commands.Cog):
         elif isinstance(error, commands.MissingPermissions):
             embed = create_embed(f":x: List punishments failed", f"You do not have the permission to list all warns", color="ERROR")
             await ctx.reply(embed=embed)
-        elif isinstance(error, commands.CommandInvokeError):
+        else:
             embed = create_embed(f":x: List punishments failed", f"Something went wrong, please contact my developer", color="ERROR")
             await ctx.reply(embed=embed)
 
@@ -373,7 +400,7 @@ class AdminCommands(commands.Cog):
         elif isinstance(error, commands.MissingPermissions):
             embed = create_embed(f":x: List punishments failed", f"You do not have the permission to list all warns", color="ERROR")
             await ctx.reply(embed=embed)
-        elif isinstance(error, commands.CommandInvokeError):
+        else:
             embed = create_embed(f":x: List punishments failed", f"Something went wrong, please contact my developer", color="ERROR")
             await ctx.reply(embed=embed)
 
@@ -385,7 +412,7 @@ class AdminCommands(commands.Cog):
         elif isinstance(error, commands.MissingPermissions):
             embed = create_embed(f":x: List punishments failed", f"You do not have the permission to list all warns", color="ERROR")
             await ctx.reply(embed=embed)
-        elif isinstance(error, commands.CommandInvokeError):
+        else:
             embed = create_embed(f":x: List punishments failed", f"Something went wrong, please contact my developer", color="ERROR")
             await ctx.reply(embed=embed)
 

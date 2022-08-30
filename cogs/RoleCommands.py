@@ -220,23 +220,23 @@ class RoleCommands(commands.Cog):
         if isinstance(error, commands.BadArgument):
             embed = create_embed(f":x: Role message setup failed", f"Given input is invalid", color="ERROR")
             await ctx.reply(embed=embed)
-        elif isinstance(error, commands.CommandInvokeError):
-            embed = create_embed(f":x: Role message setup failed", f"Something went wrong, please contact my developer", color="ERROR")
-            await ctx.reply(embed=embed)
         elif isinstance(error, commands.MissingPermissions):
             embed = create_embed(f":x: Role message setup failed", f"You don't have permission to use this command!", color="ERROR")
+            await ctx.reply(embed=embed)
+        else:
+            embed = create_embed(f":x: Role message setup failed", f"Something went wrong, please contact my developer", color="ERROR")
             await ctx.reply(embed=embed)
 
     @rmsetup.error
     async def rmsetup_error(self, ctx, error):
         if isinstance(error, commands.BadArgument):
-            embed = create_embed(f":x: Role message remove failed", f"Given input is invalid", color="ERROR")
-            await ctx.reply(embed=embed)
-        elif isinstance(error, commands.CommandInvokeError):
-            embed = create_embed(f":x: Role message remove failed", f"Something went wrong, please contact my developer", color="ERROR")
+            embed = create_embed(f":x: Role message removal failed", f"Given input is invalid", color="ERROR")
             await ctx.reply(embed=embed)
         elif isinstance(error, commands.MissingPermissions):
-            embed = create_embed(f":x: Role message remove failed", f"You don't have permission to use this command!", color="ERROR")
+            embed = create_embed(f":x: Role message removal failed", f"You don't have permission to use this command!", color="ERROR")
+            await ctx.reply(embed=embed)
+        else:
+            embed = create_embed(f":x: Role message removal failed", f"Something went wrong, please contact my developer", color="ERROR")
             await ctx.reply(embed=embed)
 
 async def setup(bot):
