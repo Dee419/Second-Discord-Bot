@@ -198,7 +198,7 @@ class AdminCommands(commands.Cog):
             embed = create_embed(f"Page {index//10+1}/{len_punishments//10+1} of {type}s on this server", "")
             while index < max_index:
                 entry = moderation_data[index]
-                target = await self.bot.fetch_user(int(user_list[index]))
+                target = await super().bot.fetch_user(int(user_list[index]))
                 embed.add_field(name=f"{type.capitalize()} for {target.name}#{target.discriminator}", value=f"\n**Reason**: {entry['reason']}\n**Date**: {entry['date']}\n**Time**: {entry['time']} CET\n", inline=False)
                 index += 1
             return embed
@@ -255,9 +255,9 @@ class AdminCommands(commands.Cog):
                 if interaction.user.id == ctx.author.id:
                     self.index = 0
                 if self.index + 10 < len(moderation_data):
-                    current_page = await AdminCommands.listpunishments(target, target, type, moderation_data, user_list, len(moderation_data), self.index, self.index+10)
+                    current_page = await AdminCommands.listpunishments(self, target, type, moderation_data, user_list, len(moderation_data), self.index, self.index+10)
                 else:
-                    current_page = await AdminCommands.listpunishments(target, target, type, moderation_data, user_list, len(moderation_data), self.index, len(moderation_data))
+                    current_page = await AdminCommands.listpunishments(self, target, type, moderation_data, user_list, len(moderation_data), self.index, len(moderation_data))
                 await interaction.response.edit_message(embed=current_page)
             
             # Go to the previous page
@@ -266,9 +266,9 @@ class AdminCommands(commands.Cog):
                 if interaction.user.id == ctx.author.id and self.index >= 10:
                     self.index -= 10
                 if self.index + 10 < len(moderation_data):
-                    current_page = await AdminCommands.listpunishments(target, target, type, moderation_data, user_list, len(moderation_data), self.index, self.index+10)
+                    current_page = await AdminCommands.listpunishments(self, target, type, moderation_data, user_list, len(moderation_data), self.index, self.index+10)
                 else:
-                    current_page = await AdminCommands.listpunishments(target, target, type, moderation_data, user_list, len(moderation_data), self.index, len(moderation_data))
+                    current_page = await AdminCommands.listpunishments(self, target, type, moderation_data, user_list, len(moderation_data), self.index, len(moderation_data))
                 await interaction.response.edit_message(embed=current_page)
 
             # Go to the next page
@@ -277,9 +277,9 @@ class AdminCommands(commands.Cog):
                 if interaction.user.id == ctx.author.id and self.index <= len(moderation_data) - 10:
                     self.index += 10
                 if self.index + 10 < len(moderation_data):
-                    current_page = await AdminCommands.listpunishments(target, target, type, moderation_data, user_list, len(moderation_data), self.index, self.index+10)
+                    current_page = await AdminCommands.listpunishments(self, target, type, moderation_data, user_list, len(moderation_data), self.index, self.index+10)
                 else:
-                    current_page = await AdminCommands.listpunishments(target, target, type, moderation_data, user_list, len(moderation_data), self.index, len(moderation_data))
+                    current_page = await AdminCommands.listpunishments(self, target, type, moderation_data, user_list, len(moderation_data), self.index, len(moderation_data))
                 await interaction.response.edit_message(embed=current_page)
 
             # Go to the last page
@@ -290,9 +290,9 @@ class AdminCommands(commands.Cog):
                     if len(self.index) > 1:
                         self.index = int(self.index[:-1]+"0")
                 if self.index + 10 < len(moderation_data):
-                    current_page = await AdminCommands.listpunishments(target, target, type, moderation_data, user_list, len(moderation_data), self.index, self.index+10)
+                    current_page = await AdminCommands.listpunishments(self, target, type, moderation_data, user_list, len(moderation_data), self.index, self.index+10)
                 else:
-                    current_page = await AdminCommands.listpunishments(target, target, type, moderation_data, user_list, len(moderation_data), self.index, len(moderation_data))
+                    current_page = await AdminCommands.listpunishments(self, target, type, moderation_data, user_list, len(moderation_data), self.index, len(moderation_data))
                 await interaction.response.edit_message(embed=current_page)
 
         view = PunishmentMenu(ctx=ctx)
