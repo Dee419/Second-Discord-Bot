@@ -181,7 +181,7 @@ class AdminCommands(commands.Cog):
     async def listpunishments(self, target, type: str, moderation_data: dict, user_list: list, len_punishments: int, index: int=0, max_index: int=0):
         if len(user_list) == 1 and target != 'all':
             # This is a .listpunishments MEMBER-ID situation
-            if len(moderation_data) == 0:
+            if len_punishments == 0:
                 # There are no punishments
                 return create_embed(f"Page {index//10+1}/{len_punishments//10+1} of {type}s for {target.name}#{target.discriminator}", f"No {type}s found")
             embed = create_embed(f"Page {index//10+1}/{len_punishments//10+1} of {type}s for {target.name}#{target.discriminator}", "")
@@ -192,13 +192,13 @@ class AdminCommands(commands.Cog):
             return embed
         else:
             # This is a .listpunishments all situation
-            if len(moderation_data) == 0:
+            if len_punishments == 0:
                 # There are no punishments
                 return create_embed(f"Page {index//10+1}/{len_punishments//10+1} of all {type}s on the server", f"No {type}s found")
             embed = create_embed(f"Page {index//10+1}/{len_punishments//10+1} of {type}s on this server", "")
-            while index < max_index:
+            while index < max_index and index < len_punishments:
                 entry = moderation_data[index]
-                target = await super().bot.fetch_user(int(user_list[index]))
+                target = await self.bot.fetch_user(int(user_list[index]))
                 embed.add_field(name=f"{type.capitalize()} for {target.name}#{target.discriminator}", value=f"\n**Reason**: {entry['reason']}\n**Date**: {entry['date']}\n**Time**: {entry['time']} CET\n", inline=False)
                 index += 1
             return embed
@@ -245,46 +245,51 @@ class AdminCommands(commands.Cog):
         current_page = await self.listpunishments(target, type, moderation_data, user_list, len(moderation_data), 0, 10)
 
         class PunishmentMenu(discord.ui.View):
-            def __init__(self, ctx, *, index: int=0, timeout: float=120.0):
+            def __init__(self, ctx, bot, *, index: int=0, timeout: float=120.0):
                 super().__init__(timeout=timeout)
                 self.index = index
+                self.bot = bot
 
             # Go to the first page
             @discord.ui.button(style=discord.ButtonStyle.primary, emoji='⏪', label='First page')
             async def button_first_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+                await interaction.response.defer()
                 if interaction.user.id == ctx.author.id:
                     self.index = 0
                 if self.index + 10 < len(moderation_data):
                     current_page = await AdminCommands.listpunishments(self, target, type, moderation_data, user_list, len(moderation_data), self.index, self.index+10)
                 else:
                     current_page = await AdminCommands.listpunishments(self, target, type, moderation_data, user_list, len(moderation_data), self.index, len(moderation_data))
-                await interaction.response.edit_message(embed=current_page)
+                await message.edit(embed=current_page)
             
             # Go to the previous page
             @discord.ui.button(style=discord.ButtonStyle.primary, emoji='◀️', label='Previous page')
             async def button_previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+                await interaction.response.defer()
                 if interaction.user.id == ctx.author.id and self.index >= 10:
                     self.index -= 10
                 if self.index + 10 < len(moderation_data):
                     current_page = await AdminCommands.listpunishments(self, target, type, moderation_data, user_list, len(moderation_data), self.index, self.index+10)
                 else:
                     current_page = await AdminCommands.listpunishments(self, target, type, moderation_data, user_list, len(moderation_data), self.index, len(moderation_data))
-                await interaction.response.edit_message(embed=current_page)
+                await message.edit(embed=current_page)
 
             # Go to the next page
             @discord.ui.button(style=discord.ButtonStyle.primary, emoji='▶️', label='Next page')
             async def button_next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+                await interaction.response.defer()
                 if interaction.user.id == ctx.author.id and self.index <= len(moderation_data) - 10:
                     self.index += 10
                 if self.index + 10 < len(moderation_data):
                     current_page = await AdminCommands.listpunishments(self, target, type, moderation_data, user_list, len(moderation_data), self.index, self.index+10)
                 else:
                     current_page = await AdminCommands.listpunishments(self, target, type, moderation_data, user_list, len(moderation_data), self.index, len(moderation_data))
-                await interaction.response.edit_message(embed=current_page)
+                await message.edit(embed=current_page)
 
             # Go to the last page
             @discord.ui.button(style=discord.ButtonStyle.primary, emoji='⏩', label='Last page')
             async def button_last_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+                await interaction.response.defer()
                 if interaction.user.id == ctx.author.id:
                     self.index = str(len(moderation_data))
                     if len(self.index) > 1:
@@ -293,10 +298,10 @@ class AdminCommands(commands.Cog):
                     current_page = await AdminCommands.listpunishments(self, target, type, moderation_data, user_list, len(moderation_data), self.index, self.index+10)
                 else:
                     current_page = await AdminCommands.listpunishments(self, target, type, moderation_data, user_list, len(moderation_data), self.index, len(moderation_data))
-                await interaction.response.edit_message(embed=current_page)
+                await message.edit(embed=current_page)
 
-        view = PunishmentMenu(ctx=ctx)
-        await ctx.reply(embed=current_page, view=view)
+        view = PunishmentMenu(ctx=ctx, bot=self.bot)
+        message = await ctx.reply(embed=current_page, view=view)
 
     @commands.command(help="Lists all of the warns of a specific user", aliases=['listwarnings'])
     @commands.guild_only()
